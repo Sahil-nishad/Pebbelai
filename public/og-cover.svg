@@ -1,0 +1,15 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" rx="28" fill="#F8F8F5"/>
+  <rect x="62" y="62" width="1076" height="506" rx="30" fill="white" stroke="#E5E7EB"/>
+  <rect x="112" y="112" width="94" height="94" rx="24" fill="#0A0A0A"/>
+  <text x="159" y="173" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="700">P</text>
+  <text x="236" y="168" fill="#0A0A0A" font-family="Arial, sans-serif" font-size="58" font-weight="700">Pabble AI</text>
+  <text x="112" y="268" fill="#111827" font-family="Arial, sans-serif" font-size="44" font-weight="700">AI Resume Builder and ATS Resume Checker</text>
+  <text x="112" y="322" fill="#4B5563" font-family="Arial, sans-serif" font-size="27">Professional resume templates, ATS scoring, JD matching, and job application tracking.</text>
+  <rect x="112" y="386" width="288" height="58" rx="29" fill="#0A0A0A"/>
+  <text x="256" y="423" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="700">Build ATS-friendly resumes</text>
+  <rect x="424" y="386" width="240" height="58" rx="29" fill="#EEF2FF"/>
+  <text x="544" y="423" text-anchor="middle" fill="#1D4ED8" font-family="Arial, sans-serif" font-size="24" font-weight="700">Track applications</text>
+  <rect x="112" y="484" width="924" height="1" fill="#E5E7EB"/>
+  <text x="112" y="529" fill="#6B7280" font-family="Arial, sans-serif" font-size="24">Developed by Dune AI</text>
+</svg>
