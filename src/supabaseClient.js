@@ -24,9 +24,14 @@ export async function signOutUser() {
 }
 
 export async function signInWithGoogle() {
-  return await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
   });
+  if (error) {
+    alert("Google Login Error: " + error.message);
+    console.error(error);
+  }
+  return { data, error };
 }
 
 /* ===================== RESUME DATABASE HELPERS ===================== */
