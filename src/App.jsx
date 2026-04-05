@@ -275,8 +275,8 @@ function Navbar({
                 <ClipboardList size={14} /> Tracker
               </button>
               <div className="user-pill" onClick={onUserProfile} title="Open profile">
-                <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
-                <span>{user.name}</span>
+                <div className="user-avatar">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
+                <span>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</span>
               </div>
               <button className="btn btn-outline btn-sm" onClick={onLogout}>
                 Sign Out
@@ -1009,7 +1009,7 @@ function UserProfilePage({
 
       <div className="profile-overview-card">
         <div className="profile-overview-avatar">
-          <span>{(user?.name || 'U').charAt(0).toUpperCase()}</span>
+          <span>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</span>
         </div>
         <div className="profile-overview-copy">
           <h2>{user?.name || 'Your Profile'}</h2>
