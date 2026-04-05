@@ -94,7 +94,7 @@ ${proj}
 // ═══════════ TEMPLATE 7: Jan Küster (Raleway, Blue Accent) ═══════════
 export function t7_jankuster(d) {
   const events = (d.experience || []).filter(e => e.title || e.company).map(e => `
-\\cvevent{${esc(e.duration)}}{${esc(e.title)}}{${esc(e.company)}}{${(e.bullets || []).slice(0,1).map(esc).join('')}}{${(e.bullets || []).slice(1,2).map(esc).join('')}}`).join('\n');
+\\cvevent{${esc(e.duration)}}{${esc(e.title)}}{${esc(e.company)}}{${(e.bullets || []).slice(0, 1).map(esc).join('')}}{${(e.bullets || []).slice(1, 2).map(esc).join('')}}`).join('\n');
 
   return `\\documentclass[10pt,A4]{article}
 \\usepackage[utf8]{inputenc}
@@ -137,9 +137,9 @@ export function t7_jankuster(d) {
 \\end{center}
 \\vspace{6pt}
 \\metasection{${esc(d.location || '')}}{\\textbf{Status:} ${esc(d.summary?.substring(0, 60) || '')}}
-\\metasection{${esc(d.email || '')}}{\\textbf{Skills:} ${(d.skills?.technical || []).slice(0,5).map(esc).join(', ')}}
-\\metasection{${esc(d.phone || '')}}{\\textbf{Tools:} ${(d.skills?.tools || []).slice(0,5).map(esc).join(', ')}}
-${d.linkedin ? `\\metasection{${esc(d.linkedin)}}{\\textbf{Soft Skills:} ${(d.skills?.soft || []).slice(0,4).map(esc).join(', ')}}` : ''}
+\\metasection{${esc(d.email || '')}}{\\textbf{Skills:} ${(d.skills?.technical || []).slice(0, 5).map(esc).join(', ')}}
+\\metasection{${esc(d.phone || '')}}{\\textbf{Tools:} ${(d.skills?.tools || []).slice(0, 5).map(esc).join(', ')}}
+${d.linkedin ? `\\metasection{${esc(d.linkedin)}}{\\textbf{Soft Skills:} ${(d.skills?.soft || []).slice(0, 4).map(esc).join(', ')}}` : ''}
 \\vspace{-2pt}
 \\textcolor{softcol}{\\hrule}
 \\vspace{6pt}
@@ -148,7 +148,7 @@ ${d.summary ? `\\vspace{-6pt}\\cvsection{Summary}\n${esc(d.summary)}\n` : ''}
 \\cvsection{Experience}
 ${events}
 \\cvsection{Projects}
-${(d.projects || []).filter(p => p.name).map(p => `\\cvevent{}{${esc(p.name)}}{${esc(p.techStack || '')}}{${(p.bullets || []).slice(0,1).map(esc).join('')}}{${(p.bullets || []).slice(1,2).map(esc).join('')}}`).join('\n')}
+${(d.projects || []).filter(p => p.name).map(p => `\\cvevent{}{${esc(p.name)}}{${esc(p.techStack || '')}}{${(p.bullets || []).slice(0, 1).map(esc).join('')}}{${(p.bullets || []).slice(1, 2).map(esc).join('')}}`).join('\n')}
 \\cvsection{Education}
 ${Array.isArray(d.education) ? d.education.map(e => `\\cvevent{${esc(e.dates || '')}}{${esc(e.degree || '')}}{${esc(e.school || '')}}{${esc(e.details || '')}}{}`).join('\n') : `\\cvevent{}{${esc(eduString(d.education))}}{}{}{}`}
 \\end{document}`;

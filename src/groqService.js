@@ -2,11 +2,13 @@
  * Groq API Client — Calls backend server (API key is server-side)
  */
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 /**
  * Enhance resume via backend Groq API
  */
 export async function enhanceWithGroq(userData, targetRole, rolePackId) {
-  const response = await fetch('/api/enhance', {
+  const response = await fetch(`${API_BASE}/api/enhance`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userData, targetRole, rolePackId }),
@@ -21,7 +23,7 @@ export async function enhanceWithGroq(userData, targetRole, rolePackId) {
 }
 
 export async function generateCareerKitWithGroq(resumeData, targetRole, jobDescription) {
-  const response = await fetch('/api/career-kit', {
+  const response = await fetch(`${API_BASE}/api/career-kit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ resumeData, targetRole, jobDescription }),
@@ -36,7 +38,7 @@ export async function generateCareerKitWithGroq(resumeData, targetRole, jobDescr
 }
 
 export async function scoreATSWithGroq(resumeData, targetRole, jobDescription) {
-  const response = await fetch('/api/ats-score', {
+  const response = await fetch(`${API_BASE}/api/ats-score`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ resumeData, targetRole, jobDescription }),
@@ -55,7 +57,7 @@ export async function scoreATSWithGroq(resumeData, targetRole, jobDescription) {
  */
 export async function checkBackendHealth() {
   try {
-    const response = await fetch('/api/health');
+    const response = await fetch(`${API_BASE}/api/health`);
     if (!response.ok) return { running: false, groqConfigured: false };
     const data = await response.json();
     return { running: true, groqConfigured: data.groqConfigured };
