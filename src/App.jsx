@@ -478,11 +478,18 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
 function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
-    setTimeout(() => {
-      onLogin({ name: 'Alex Rivera', email: 'alex.rivera@example.com' });
-    }, 1200);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        alert("Google Login Error: " + error.message);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
