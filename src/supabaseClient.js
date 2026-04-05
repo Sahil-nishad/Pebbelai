@@ -9,6 +9,26 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
 
+/* ===================== AUTH HELPERS ===================== */
+
+export async function signUpUser(email, password) {
+  return await supabase.auth.signUp({ email, password });
+}
+
+export async function signInUser(email, password) {
+  return await supabase.auth.signInWithPassword({ email, password });
+}
+
+export async function signOutUser() {
+  return await supabase.auth.signOut();
+}
+
+export async function signInWithGoogle() {
+  return await supabase.auth.signInWithOAuth({
+    provider: 'google',
+  });
+}
+
 /* ===================== RESUME DATABASE HELPERS ===================== */
 
 // Fetch all resumes for the currently logged-in user

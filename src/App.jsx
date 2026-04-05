@@ -5,6 +5,18 @@ import {
   calculateJDMatchDetails,
   generateApplicationFeedback,
 } from './resumeEngine';
+
+import {
+  supabase,
+  signInUser,
+  signUpUser,
+  signOutUser,
+  signInWithGoogle,
+  fetchUserResumes,
+  saveResumeToDB,
+  deleteResumeFromDB
+} from './supabaseClient';
+
 import { enhanceWithGroq, checkBackendHealth, scoreATSWithGroq } from './groqService';
 import { TEMPLATES, downloadLatex } from './latexTemplates2';
 import {
@@ -786,7 +798,7 @@ function TemplateGallery({ templates, onSelect }) {
             let diff = index - modIndex;
             if (diff > N / 2) diff -= N;
             if (diff < -N / 2) diff += N;
-            
+
             const absDiff = Math.abs(diff);
             const isActive = diff === 0;
 
@@ -851,14 +863,14 @@ function TemplateGallery({ templates, onSelect }) {
                 }}
               >
                 <div className="gallery-preview-frame">
-                   <div className="gallery-preview-html-wrapper">
-                     <ResumePreview 
-                        data={GALLERY_DUMMY_DATA} 
-                        templateId={t.baseTemplate || t.id} 
-                        isThumbnail={true} 
-                        settings={{ fontFamily: 'template', fontSize: 11, maxBullets: 2, compactMode: true }}
-                     />
-                   </div>
+                  <div className="gallery-preview-html-wrapper">
+                    <ResumePreview
+                      data={GALLERY_DUMMY_DATA}
+                      templateId={t.baseTemplate || t.id}
+                      isThumbnail={true}
+                      settings={{ fontFamily: 'template', fontSize: 11, maxBullets: 2, compactMode: true }}
+                    />
+                  </div>
                 </div>
                 <div className="gallery-item-footer">
                   <div className="gallery-item-meta">
@@ -2649,6 +2661,36 @@ function App() {
   const [resumeHistory, setResumeHistory] = useState(() => readStorageArray(STORAGE_KEYS.resumeHistory, []));
   const [builderDraft, setBuilderDraft] = useState(null);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadSupabaseResumes();
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadSupabaseResumes();
+      } else {
+        setUser(null);
+        setResumeHistory([]);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const loadSupabaseResumes = async () => {
+    const { data, error } = await fetchUserResumes();
+    if (data && !error) {
+      setResumeHistory(data);
+    }
+  };
 
   useEffect(() => { checkBackendHealth().then(setBackendStatus); }, []);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.resumeHistory, JSON.stringify(resumeHistory)); }, [resumeHistory]);
