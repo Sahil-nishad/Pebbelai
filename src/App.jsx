@@ -290,33 +290,58 @@ function Navbar({
         </a>
         
         <div className="navbar-actions">
-          {hasResume && (
-            <div className="navbar-builder-actions hide-on-mobile">
-              <button className="btn btn-outline btn-sm" onClick={() => downloadLatex(selectedTemplate, resumeData)}>
-                <FileCode2 size={14} /> Export .tex
-              </button>
-              <button className="btn btn-black btn-sm" onClick={() => exportToPDF('resume-render')}>
-                <Download size={14} /> Download PDF
-              </button>
-            </div>
-          )}
-          
           {user ? (
             <>
-              <button className="btn btn-outline btn-sm hide-on-mobile" onClick={onOpenTracker}>
-                <ClipboardList size={14} /> Tracker
-              </button>
-              <div className="user-pill hide-on-mobile" onClick={onUserProfile} title="Open profile">
-                <div className="user-avatar">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
-                <span>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</span>
-              </div>
+              {/* Contextual Toggle Button */}
+              {view === 'tracker' ? (
+                <button className="btn btn-black btn-sm" onClick={onLogoClick}>
+                  <FileText size={14} /> Resume Builder
+                </button>
+              ) : (
+                <button className="btn btn-black btn-sm" onClick={onOpenTracker}>
+                  <ClipboardList size={14} /> Tracker Mode
+                </button>
+              )}
+
+              {/* Minimalist Builder Actions (Only in Builder mode and if resume exists) */}
+              {hasResume && view === 'builder' && (
+                <div className="navbar-builder-actions hide-on-mobile">
+                  <button className="btn btn-outline btn-sm" onClick={() => exportToPDF('resume-render')}>
+                    <Download size={14} /> Export PDF
+                  </button>
+                </div>
+              )}
               
               <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)}>
                 {menuOpen ? <Plus size={24} style={{ transform: 'rotate(45deg)' }} /> : <Layout size={24} />}
               </button>
+
+              {menuOpen && (
+                <div className="nav-menu-overlay" onClick={() => setMenuOpen(false)}>
+                  <div className="nav-menu" onClick={e => e.stopPropagation()}>
+                    <div className="nav-menu-header">
+                      <div className="user-avatar-large">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
+                      <div className="nav-menu-user-info">
+                        <strong>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</strong>
+                        <span>{user?.email}</span>
+                      </div>
+                    </div>
+                    <div className="nav-menu-links">
+                      <button onClick={() => { setMenuOpen(false); onUserProfile(); }}>
+                        <User size={18} /> My Profile
+                      </button>
+                      <button onClick={() => { setMenuOpen(false); onOpenTracker(); }}>
+                        <ClipboardList size={18} /> Application Tracker
+                      </button>
+                      <button className="menu-logout-btn" onClick={onLogout}>
+                        <LogIn size={18} style={{ transform: 'rotate(180deg)' }} /> Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
-
             view !== 'login' && (
               <button className="btn btn-black btn-sm" onClick={onSignIn}>
                 <LogIn size={14} /> Sign In
@@ -1015,20 +1040,7 @@ function UserProfilePage({
     <div className="dashboard-page">
       <div className="dashboard-header">
         <div>
-          <h1>Your Profile Dashboard</h1>
-          <p>Manage your account, personal details, and resume history.</p>
-        </div>
-        <div className="dashboard-actions">
-          <button className="btn btn-outline btn-sm" onClick={onBackToTemplates}>
-            <ArrowLeft size={14} /> Back to Templates
-          </button>
-          <button className="btn btn-black btn-sm" onClick={() => {
-            if (window.confirm('Are you sure you want to sign out?')) {
-              onLogout();
-            }
-          }}>
-            <LogIn size={14} style={{ transform: 'rotate(180deg)' }} /> Sign Out
-          </button>
+          <h1>Profile</h1>
         </div>
       </div>
 
@@ -1042,9 +1054,6 @@ function UserProfilePage({
         </div>
         <div className="profile-overview-meta">
           <div><strong>{history.length}</strong><span>Saved resumes</span></div>
-          <button className="btn btn-outline btn-sm" onClick={onOpenTracker}>
-            <ClipboardList size={14} /> Open Tracker
-          </button>
         </div>
       </div>
 
@@ -1417,18 +1426,14 @@ function ApplicationTrackerPage({ onBackToTemplates, onCreateResume }) {
     <div className="dashboard-page">
       <div className="dashboard-header">
         <div>
-          <h1>Application Tracker</h1>
-          <p>Track pipeline, deadlines, source conversion, and follow-ups from one command center.</p>
+          <h1>Tracker</h1>
         </div>
         <div className="dashboard-actions">
           <button className="btn btn-black btn-sm" onClick={saveTracker}>
             <Check size={14} /> Save Tracker
           </button>
-          <button className="btn btn-outline btn-sm" onClick={onBackToTemplates}>
-            <ArrowLeft size={14} /> Resume Workflow
-          </button>
-          <button className="btn btn-black btn-sm" onClick={onCreateResume}>
-            <FileText size={14} /> Create Resume
+          <button className="btn btn-black btn-sm" onClick={onBackToTemplates}>
+            <FileText size={14} /> Builder Mode
           </button>
         </div>
       </div>
@@ -2844,12 +2849,13 @@ function App() {
         onLogoClick={handleLogoClick}
         onSignIn={handleSignIn}
         view={view}
-        hasResume={false}
+        hasResume={view === 'builder'}
         selectedTemplate={selectedTemplate}
         resumeData={null}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
       />
+
 
       {user && menuOpen && (
         <div className="nav-menu-overlay" onClick={() => setMenuOpen(false)}>
