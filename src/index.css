@@ -3701,6 +3701,124 @@ body {
     font-size: 14px;
   }
 
+  /* --- Onboarding Choice Page --- */
+.choice-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 80px 32px;
+  text-align: center;
+}
+
+.choice-header {
+  margin-bottom: 48px;
+}
+
+.choice-header h1 {
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 40px);
+  margin-bottom: 12px;
+  color: var(--black);
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.choice-card {
+  padding: 48px 32px;
+  border: 1px solid var(--gray-200);
+  border-radius: 32px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.choice-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--black);
+  box-shadow: 0 32px 64px -12px rgba(17, 24, 39, 0.1);
+}
+
+.choice-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.choice-icon-wrap.builder {
+  background: var(--gray-50);
+  color: var(--black);
+}
+
+.choice-icon-wrap.tracker {
+  background: #f0f7ff;
+  color: #2563eb;
+}
+
+.choice-card h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.choice-card p {
+  font-size: 15px;
+  color: var(--gray-600);
+  line-height: 1.65;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
+  .choice-page {
+    padding: 40px 16px;
+  }
+}
+
+/* Integrated Login Styles */
+.landing-signin-integrated {
+  padding: 80px 24px;
+  background: #f9fafb;
+  border-radius: 40px;
+  margin: 64px 32px;
+}
+
+.login-integrated {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0;
+  display: block;
+}
+.login-integrated .login-card {
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+.landing-login-success {
+  text-align: center;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .landing-signin-integrated {
+    margin: 40px 16px;
+    padding: 60px 16px;
+  }
+}
+
   /* -- Landing page -- */
   .landing-page {
     padding: 36px 16px 64px;

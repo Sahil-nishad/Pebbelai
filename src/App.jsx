@@ -294,11 +294,11 @@ function Navbar({
             <>
               {/* Contextual Toggle Button */}
               {view === 'tracker' ? (
-                <button className="btn btn-black btn-sm" onClick={onLogoClick}>
+                <button className="btn btn-black btn-sm" onClick={() => setView('gallery')}>
                   <FileText size={14} /> Resume Builder
                 </button>
-              ) : (
-                <button className="btn btn-black btn-sm" onClick={onOpenTracker}>
+              ) : view === 'choice' ? null : (
+                <button className="btn btn-black btn-sm" onClick={() => setView('tracker')}>
                   <ClipboardList size={14} /> Tracker Mode
                 </button>
               )}
@@ -327,11 +327,14 @@ function Navbar({
                       </div>
                     </div>
                     <div className="nav-menu-links">
-                      <button onClick={() => { setMenuOpen(false); onUserProfile(); }}>
+                      <button onClick={() => { setMenuOpen(false); setView('profile'); }}>
                         <User size={18} /> My Profile
                       </button>
-                      <button onClick={() => { setMenuOpen(false); onOpenTracker(); }}>
+                      <button onClick={() => { setMenuOpen(false); setView('tracker'); }}>
                         <ClipboardList size={18} /> Application Tracker
+                      </button>
+                      <button onClick={() => { setMenuOpen(false); setView('gallery'); }}>
+                        <FileText size={18} /> Resume Templates
                       </button>
                       <button className="menu-logout-btn" onClick={onLogout}>
                         <LogIn size={18} style={{ transform: 'rotate(180deg)' }} /> Sign Out
@@ -343,12 +346,17 @@ function Navbar({
             </>
           ) : (
             view !== 'login' && (
-              <button className="btn btn-black btn-sm" onClick={onSignIn}>
+              <button className="btn btn-black btn-sm" onClick={() => {
+                const el = document.getElementById('signin-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                else onSignIn();
+              }}>
                 <LogIn size={14} /> Sign In
               </button>
             )
           )}
         </div>
+
       </div>
     </nav>
   );
@@ -364,27 +372,31 @@ function SiteFooter() {
 }
 
 /* ===================== LANDING PAGE ===================== */
-function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
+function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview, onLogin, user }) {
   return (
     <div className="landing-page">
-      <section className="landing-hero">
-        <div className="landing-content">
-          <div className="landing-badge">The Future of Career Building</div>
-          <h1 className="landing-title">
-            Build Better.<br />Track Smarter.
-          </h1>
-          <p className="landing-subtitle">
-            An architectural approach to resume building and application management.
-            Polished, precise, and professional.
+      <section className="landing-hero" aria-labelledby="hero-heading">
+        <div className="landing-hero-copy">
+          <div className="landing-badge">The Future of Applying</div>
+          <h1 id="hero-heading">Shape your career with<br/>precision.</h1>
+          <p>
+            Professional LaTeX resumes, real-time ATS optimization, 
+            and a complete job application tracker—all in one high-performance command center.
           </p>
-          <div className="landing-cta-row">
-            <button className="btn btn-black btn-xl" onClick={onOpenResumeFlow}>
-              Start Building Now <ArrowRight size={18} />
-            </button>
-            <button className="btn btn-outline btn-xl" onClick={onOpenTrackerPreview}>
-              <ClipboardList size={18} /> Application Tracker
-            </button>
-          </div>
+          
+          {user ? (
+            <div className="landing-cta-row">
+              <button className="btn btn-black btn-xl" onClick={() => onOpenResumeFlow()}>
+                Go to Dashboard <ArrowRight size={18} />
+              </button>
+            </div>
+          ) : (
+            <div className="landing-cta-row">
+              <button className="btn btn-black btn-xl" onClick={() => document.getElementById('signin-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                Get Started Free <ArrowRight size={18} />
+              </button>
+            </div>
+          )}
           <div className="landing-stats">
             <div className="stat"><strong>14</strong><span>Templates</span></div>
             <div className="stat-divider" />
@@ -491,7 +503,26 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
         </div>
       </section>
 
-      <section className="landing-faq" aria-labelledby="faq-heading" style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 60 }}>
+      <section id="signin-section" className="landing-signin-integrated">
+        <div className="landing-section-head">
+          <h2>Ready to elevate your job search?</h2>
+          <p>Join thousands of professionals and get started with PEBELai today.</p>
+        </div>
+        {!user ? (
+          <div className="landing-login-grid">
+             <LoginPage onLogin={onLogin} integrated={true} />
+          </div>
+        ) : (
+          <div className="landing-login-success">
+            <h3>You're signed in as {user.name || user.email}</h3>
+            <button className="btn btn-black btn-xl" onClick={() => onOpenResumeFlow()}>
+              Return to Workspace <ArrowRight size={18} />
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="landing-faq" aria-labelledby="faq-heading" style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 60, paddingBottom: 60 }}>
         <div className="landing-section-head">
           <h2 id="faq-heading">Frequently asked questions</h2>
           <p>Answers for users looking for a professional resume builder and ATS optimization platform.</p>
@@ -508,8 +539,39 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
     </div>
   );
 }
+
+/* ===================== POST-LOGIN CHOICE PAGE ===================== */
+function PostLoginChoice({ onChooseBuilder, onChooseTracker }) {
+  return (
+    <div className="choice-page">
+      <div className="choice-header">
+        <h1>Welcome. How would you like to start?</h1>
+        <p>Choose the tool that fits your current needs.</p>
+      </div>
+      <div className="choice-grid">
+        <div className="choice-card" onClick={onChooseBuilder}>
+          <div className="choice-icon-wrap builder">
+            <FileText size={40} />
+          </div>
+          <h2>Resume Builder</h2>
+          <p>Create an ATS-optimized resume using professional LaTeX templates and real-time guidance.</p>
+          <button className="btn btn-black btn-full">Start Building</button>
+        </div>
+        <div className="choice-card" onClick={onChooseTracker}>
+          <div className="choice-icon-wrap tracker">
+            <ClipboardList size={40} />
+          </div>
+          <h2>Application Tracker</h2>
+          <p>Manage your job search, track follow-ups, and organize interview rounds in one place.</p>
+          <button className="btn btn-outline btn-full">Open Tracker</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ===================== LOGIN PAGE ===================== */
-function LoginPage({ onLogin }) {
+function LoginPage({ onLogin, integrated = false }) {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
@@ -527,22 +589,24 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-left">
-        <div className="login-brand">
-          <img src="/pebel-logo.svg" alt="PEBELai" style={{ height: 100, width: 'auto', marginBottom: 32 }} />
-        </div>
-        <h1 className="login-headline">Professional results.<br/>Zero friction.</h1>
-        <p className="login-subtext">Join 5,000+ professionals building ATS-optimized resumes that actually get read.</p>
-        
-        <div className="login-testimonial">
-          <div className="login-stars">
-            <Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" />
+    <div className={`login-page ${integrated ? 'login-integrated' : ''}`}>
+      {!integrated && (
+        <div className="login-left">
+          <div className="login-brand">
+            <img src="/pebel-logo.svg" alt="PEBELai" style={{ height: 100, width: 'auto', marginBottom: 32 }} />
           </div>
-          <p>&quot;The design is incredible. I finally have a resume I'm proud to send to top-tier companies.&quot;</p>
-          <span className="testimonial-author">— Alex D., Sr. Software Engineer</span>
+          <h1 className="login-headline">Professional results.<br/>Zero friction.</h1>
+          <p className="login-subtext">Join 5,000+ professionals building ATS-optimized resumes that actually get read.</p>
+          
+          <div className="login-testimonial">
+            <div className="login-stars">
+              <Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" />
+            </div>
+            <p>&quot;The design is incredible. I finally have a resume I'm proud to send to top-tier companies.&quot;</p>
+            <span className="testimonial-author">— Alex D., Sr. Software Engineer</span>
+          </div>
         </div>
-      </div>
+      )}
       <div className="login-right">
         <div className="login-card">
           <div className="login-card-header">
@@ -2793,7 +2857,8 @@ function App() {
     const savedProfile = readStorageObject(STORAGE_KEYS.userProfile, {});
     const mergedUser = { ...u, ...savedProfile };
     setUser(mergedUser);
-    setView(postLoginView);
+    // After login, show the choice screen
+    setView('choice');
   };
 
   const handleSelectTemplate = (id) => {
@@ -2912,16 +2977,18 @@ function App() {
       <main className="app-main">
         {view === 'landing' && (
           <LandingPage
-            onOpenResumeFlow={() => handleRequireAuth('gallery')}
-            onOpenTrackerPreview={() => handleRequireAuth('tracker')}
+            onOpenResumeFlow={() => user ? setView('choice') : setView('login')}
+            onOpenTrackerPreview={() => user ? setView('choice') : setView('login')}
+            onLogin={handleLogin}
+            user={user}
           />
         )}
-        {view === 'workflow' && (
-          <ResumeWorkflowPage
-            onContinueToTemplates={() => setView('gallery')}
-            onOpenTracker={() => setView('tracker')}
+        {view === 'choice' && (
+          <PostLoginChoice
+            onChooseBuilder={() => setView('gallery')}
+            onChooseTracker={() => setView('tracker')}
           />
-        )}
+        ) }
         {view === 'login' && <LoginPage onLogin={handleLogin} />}
         {view === 'gallery' && (
           <TemplateGallery
