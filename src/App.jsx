@@ -338,13 +338,13 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
     <div className="landing-page">
       <section className="landing-hero">
         <div className="landing-content">
-          <div className="landing-badge">Professional Resume Platform</div>
+          <div className="landing-badge">The Future of Career Building</div>
           <h1 className="landing-title">
-            The Intelligent Way to<br />Build & Track Your Career.
+            Build Better.<br />Track Smarter.
           </h1>
           <p className="landing-subtitle">
-            Pabble AI is a professional resume builder and job tracker 
-            designed to help you land more interviews with less friction.
+            An architectural approach to resume building and application management.
+            Polished, precise, and professional.
           </p>
           <div className="landing-cta-row">
             <button className="btn btn-black btn-xl" onClick={onOpenResumeFlow}>
@@ -398,8 +398,8 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
       </section>
       <section className="landing-platform-split" aria-labelledby="platform-pillars-heading">
         <div className="landing-section-head">
-          <h2 id="platform-pillars-heading">Two core products, one connected workflow</h2>
-          <p>Build a stronger resume first, then manage the real application pipeline with follow-ups, interviews, and deadlines.</p>
+          <h2 id="platform-pillars-heading">The Ecosystem</h2>
+          <p>Two essential tools bridged together in a single, high-performance interface.</p>
         </div>
         <div className="platform-pillar-grid">
           <article className="pillar-card pillar-card-builder">
@@ -438,8 +438,8 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
       </section>
       <section className="landing-workflow" aria-labelledby="workflow-heading">
         <div className="landing-section-head">
-          <h2 id="workflow-heading">How the platform works</h2>
-          <p>Pabble AI works best as a simple loop: build, apply, and improve.</p>
+          <h2 id="workflow-heading">The Methodology</h2>
+          <p>A closed-loop system designed for consistent career growth.</p>
         </div>
         <div className="workflow-grid">
           <div className="workflow-step">
