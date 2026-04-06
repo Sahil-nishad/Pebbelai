@@ -177,11 +177,133 @@ body {
   font-size: 13px;
 }
 
+.user-avatar-large {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--black);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 20px;
+}
+
 .user-pill span {
   font-size: 13px;
   font-weight: 500;
   color: var(--gray-700);
 }
+
+/* ════════════════ HAMBURGER & NAV MENU ════════════════ */
+.hamburger-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.hamburger-btn:hover {
+  background: var(--gray-100);
+}
+
+.nav-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px;
+}
+
+.nav-menu {
+  width: 320px;
+  max-width: 90vw;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.nav-menu-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-menu-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-menu-user-info strong {
+  font-size: 16px;
+  color: var(--black);
+}
+
+.nav-menu-user-info span {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.nav-menu-links {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-menu-links button {
+  width: 100%;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+
+.nav-menu-links button:hover {
+  background: var(--gray-50);
+  color: var(--black);
+}
+
+.menu-logout-btn {
+  margin-top: 12px;
+  border-top: 1px solid var(--gray-100) !important;
+  color: #dc2626 !important;
+  padding-top: 20px !important;
+}
+
+@keyframes slideLeft {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 
 .site-footer {
   border-top: 1px solid var(--gray-200);
@@ -1534,9 +1656,118 @@ body {
 }
 
 .profile-message {
-  margin-top: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #16a34a;
+  background: #f0fdf4;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #dcfce7;
+}
+
+.dashboard-empty-mini {
+  padding: 30px;
+  text-align: center;
+  color: var(--gray-400);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--gray-200);
+}
+
+.dashboard-empty-mini p {
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.history-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.history-item-compact:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.history-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-item-info strong {
+  font-size: 14px;
+  color: var(--black);
+}
+
+.history-item-info span {
   font-size: 12px;
-  color: var(--gray-600);
+  color: var(--gray-500);
+}
+
+.history-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ════════════════ TRACKER UPDATES ════════════════ */
+.tracker-deadlines-bar {
+  margin-bottom: 24px;
+}
+
+.deadline-row-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.deadline-chip {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+}
+
+.deadline-chip strong {
+  font-size: 13px;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deadline-chip span {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
+.deadline-chip.overdue {
+  border-left: 3px solid #dc2626;
+}
+
+.deadline-chip.upcoming {
+  border-left: 3px solid #ca8a04;
+}
+
+.tracker-panel-main {
+  margin-bottom: 24px;
 }
 
 .tracker-stats {

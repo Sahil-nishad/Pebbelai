@@ -279,6 +279,8 @@ function Navbar({
   hasResume,
   selectedTemplate,
   resumeData,
+  menuOpen,
+  setMenuOpen
 }) {
   return (
     <nav className="navbar">
@@ -286,6 +288,7 @@ function Navbar({
         <a href="/" className="navbar-logo" onClick={e => { e.preventDefault(); onLogoClick(); }}>
           <img src="/pebel-logo.svg" alt="PEBELai" className="navbar-logo-img" />
         </a>
+        
         <div className="navbar-actions">
           {hasResume && (
             <div className="navbar-builder-actions hide-on-mobile">
@@ -297,18 +300,45 @@ function Navbar({
               </button>
             </div>
           )}
+          
           {user ? (
             <>
               <button className="btn btn-outline btn-sm hide-on-mobile" onClick={onOpenTracker}>
                 <ClipboardList size={14} /> Tracker
               </button>
-              <div className="user-pill" onClick={onUserProfile} title="Open profile">
+              <div className="user-pill hide-on-mobile" onClick={onUserProfile} title="Open profile">
                 <div className="user-avatar">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
                 <span>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</span>
               </div>
-              <button className="btn btn-outline btn-sm btn-signout-hidden" onClick={onLogout} style={{ display: 'none' }}>
-                Sign Out
+              
+              <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)}>
+                {menuOpen ? <Plus size={24} style={{ transform: 'rotate(45deg)' }} /> : <Layout size={24} />}
               </button>
+
+              {menuOpen && (
+                <div className="nav-menu-overlay" onClick={() => setMenuOpen(false)}>
+                  <div className="nav-menu" onClick={e => e.stopPropagation()}>
+                    <div className="nav-menu-header">
+                      <div className="user-avatar-large">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
+                      <div className="nav-menu-user-info">
+                        <strong>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</strong>
+                        <span>{user?.email}</span>
+                      </div>
+                    </div>
+                    <div className="nav-menu-links">
+                      <button onClick={() => { setMenuOpen(false); onUserProfile(); }}>
+                        <User size={18} /> My Profile
+                      </button>
+                      <button onClick={() => { setMenuOpen(false); onOpenTracker(); }}>
+                        <ClipboardList size={18} /> Application Tracker
+                      </button>
+                      <button className="menu-logout-btn" onClick={() => { setMenuOpen(false); onLogout(); }}>
+                        <LogIn size={18} style={{ transform: 'rotate(180deg)' }} /> Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             view !== 'login' && (
@@ -322,6 +352,7 @@ function Navbar({
     </nav>
   );
 }
+
 
 function SiteFooter() {
   return (
@@ -458,33 +489,8 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
           </div>
         </div>
       </section>
-      <section className="landing-features">
-        <div className="feature-card">
-          <User size={24} />
-          <h3>Profile Dashboard</h3>
-          <p>Keep your details, credentials, and past resumes in one quieter, structured space.</p>
-        </div>
-        <div className="feature-card">
-          <ClipboardList size={24} />
-          <h3>Application Tracker</h3>
-          <p>Track applied, interview, rejected, and offer stages in a separate workflow page.</p>
-        </div>
-      </section>
-      <section className="landing-seo-copy" aria-labelledby="platform-overview-heading">
-        <div className="landing-copy-card">
-          <h2 id="platform-overview-heading">AI resume builder, ATS resume checker, and job application tracker</h2>
-          <p>
-            PEBELai is built for job seekers who want ATS-friendly resumes, professional resume templates,
-            resume-to-job-description matching, and a cleaner workflow for applications, interviews, and follow-ups.
-            The platform supports freshers, software engineers, analysts, designers, and experienced professionals
-            looking to create stronger resumes and track every opportunity from one place.
-          </p>
-          <div className="landing-keyword-list" aria-label="Popular searches">
-            {SEO_ROLE_TERMS.map(term => <span key={term} className="landing-keyword-chip">{term}</span>)}
-          </div>
-        </div>
-      </section>
-      <section className="landing-faq" aria-labelledby="faq-heading">
+
+      <section className="landing-faq" aria-labelledby="faq-heading" style={{ borderTop: '1px solid var(--gray-200)', paddingTop: 60 }}>
         <div className="landing-section-head">
           <h2 id="faq-heading">Frequently asked questions</h2>
           <p>Answers for users looking for a professional resume builder and ATS optimization platform.</p>
@@ -1034,17 +1040,18 @@ function UserProfilePage({
       <div className="dashboard-header">
         <div>
           <h1>Your Profile Dashboard</h1>
-          <p>Manage your credentials, personal details, and resume history.</p>
+          <p>Manage your account, personal details, and resume history.</p>
         </div>
         <div className="dashboard-actions">
           <button className="btn btn-outline btn-sm" onClick={onBackToTemplates}>
             <ArrowLeft size={14} /> Back to Templates
           </button>
-          <button className="btn btn-outline btn-sm" onClick={onOpenTracker}>
-            <ClipboardList size={14} /> Open Tracker
-          </button>
-          <button className="btn btn-subtle btn-sm" onClick={onClearHistory} disabled={!history.length}>
-            Clear History
+          <button className="btn btn-black btn-sm" onClick={() => {
+            if (window.confirm('Are you sure you want to sign out?')) {
+              onLogout();
+            }
+          }}>
+            <LogIn size={14} style={{ transform: 'rotate(180deg)' }} /> Sign Out
           </button>
         </div>
       </div>
@@ -1059,7 +1066,9 @@ function UserProfilePage({
         </div>
         <div className="profile-overview-meta">
           <div><strong>{history.length}</strong><span>Saved resumes</span></div>
-          <div><strong>Secure</strong><span>Local credentials</span></div>
+          <button className="btn btn-outline btn-sm" onClick={onOpenTracker}>
+            <ClipboardList size={14} /> Open Tracker
+          </button>
         </div>
       </div>
 
@@ -1078,84 +1087,44 @@ function UserProfilePage({
             <div className="field"><label>LinkedIn</label><input className="input" value={profileForm.linkedin} onChange={e => updateProfileField('linkedin', e.target.value)} /></div>
             <div className="field"><label>GitHub</label><input className="input" value={profileForm.github} onChange={e => updateProfileField('github', e.target.value)} /></div>
           </div>
-          <div className="field"><label>Portfolio</label><input className="input" value={profileForm.portfolio} onChange={e => updateProfileField('portfolio', e.target.value)} /></div>
-          <button className="btn btn-black btn-sm" onClick={handleSaveProfile}>Save Profile</button>
+          <button className="btn btn-black btn-sm" onClick={handleSaveProfile}>Save Changes</button>
           {profileMsg && <p className="profile-message">{profileMsg}</p>}
         </div>
 
         <div className="profile-panel">
-          <h3>Security & Credentials</h3>
-          <div className="field"><label>Current Password</label><input className="input" type="password" value={passwordForm.currentPassword} onChange={e => updatePasswordField('currentPassword', e.target.value)} /></div>
-          <div className="field"><label>New Password</label><input className="input" type="password" value={passwordForm.newPassword} onChange={e => updatePasswordField('newPassword', e.target.value)} /></div>
-          <div className="field"><label>Confirm New Password</label><input className="input" type="password" value={passwordForm.confirmPassword} onChange={e => updatePasswordField('confirmPassword', e.target.value)} /></div>
-          <button className="btn btn-black btn-sm" onClick={handleUpdatePassword}>Update Password</button>
-          {passwordMsg && <p className="profile-message">{passwordMsg}</p>}
-        </div>
-      </div>
-
-      <div className="profile-panel" style={{ marginTop: 14 }}>
-        <h3>Account Management</h3>
-        <p className="r-desc">Sign out of your account on this device.</p>
-        <button 
-          className="btn btn-outline btn-full btn-sm" 
-          onClick={() => {
-            if (window.confirm('Are you sure you want to sign out?')) {
-              window.location.href = '/'; 
-              setTimeout(() => {
-                const logoutBtn = document.querySelector('.btn-signout-hidden');
-                if (logoutBtn) logoutBtn.click();
-                else window.location.reload();
-              }, 100);
-            }
-          }}
-          style={{ color: '#dc2626', borderColor: '#fee2e2' }}
-        >
-          Sign Out of Account
-        </button>
-      </div>
-
-      <div className="section-separator">
-        <span>Resume History</span>
-      </div>
-
-      {!history.length ? (
-        <div className="dashboard-empty" style={{ marginTop: 18 }}>
-          <ClipboardList size={28} />
-          <h3>No resume history yet</h3>
-          <p>Your generated resumes will appear here.</p>
-        </div>
-      ) : (
-        <div className="history-grid" style={{ marginTop: 18 }}>
-          {history.map(item => (
-            <div key={item.id} className="history-card">
-              <div className="history-card-head">
-                <div>
-                  <h3>{item.meta?.name || 'Untitled Resume'}</h3>
-                  <p>{item.meta?.targetRole || 'General Resume'}</p>
-                </div>
-                {typeof item.meta?.atsScore === 'number' && (
-                  <span className="history-score">{item.meta.atsScore}/100</span>
-                )}
-              </div>
-              <div className="history-meta-row">
-                <span>{item.meta?.templateName || item.meta?.templateId}</span>
-                <span>{new Date(item.updatedAt || item.createdAt).toLocaleString()}</span>
-              </div>
-              <div className="history-actions">
-                <button className="btn btn-black btn-sm" onClick={() => onOpenResume(item)}>
-                  Open & Edit
-                </button>
-                <button className="btn btn-outline btn-sm" onClick={() => onDeleteResume(item.id)}>
-                  <Trash2 size={12} /> Delete
-                </button>
-              </div>
+          <h3>Resume History</h3>
+          {!history.length ? (
+            <div className="dashboard-empty-mini">
+              <ClipboardList size={20} />
+              <p>No resume history yet</p>
             </div>
-          ))}
+          ) : (
+            <div className="history-list-compact">
+              {history.map(item => (
+                <div key={item.id} className="history-item-compact">
+                  <div className="history-item-info">
+                    <strong>{item.meta?.name || 'Untitled Resume'}</strong>
+                    <span>{new Date(item.updatedAt || item.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="history-item-actions">
+                    <button className="btn-icon-only" onClick={() => onOpenResume(item)} title="Open"><FileText size={14} /></button>
+                    <button className="btn-icon-only" onClick={() => onDeleteResume(item.id)} title="Delete"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              ))}
+              {history.length > 0 && (
+                <button className="btn-subtle btn-sm btn-full" onClick={onClearHistory} style={{ marginTop: 12 }}>
+                  Clear History
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
+
 
 const TRACKER_STATUS_COLUMNS = [
   { key: 'applied', label: 'Applied' },
@@ -1495,123 +1464,27 @@ function ApplicationTrackerPage({ onBackToTemplates, onCreateResume }) {
         <div className="tracker-stat-card tracker-stat-offer"><strong>{counts.offer}</strong><span>Offers</span></div>
         <div className="tracker-stat-card tracker-stat-rejected"><strong>{counts.rejected}</strong><span>Rejected</span></div>
       </div>
-      {trackerMessage && <p className="profile-message">{trackerMessage}</p>}
-
-      <div className="profile-panel tracker-kanban-panel">
-        <div className="tracker-section-head">
-          <h3><KanbanSquare size={16} /> Pipeline Board</h3>
-          <p>Drag application cards between stages.</p>
-        </div>
-        <div className="kanban-board">
-          {TRACKER_STATUS_COLUMNS.map(col => (
-            <div
-              key={col.key}
-              className={`kanban-column kanban-${col.key}`}
-              onDragOver={e => e.preventDefault()}
-              onDrop={() => onDropStatus(col.key)}
-            >
-              <div className="kanban-col-head">
-                <span>{col.label}</span>
-                <strong>{applications.filter(a => normalizeApplicationStatus(a.status) === col.key).length}</strong>
-              </div>
-              <div className="kanban-col-body">
-                {applications.filter(a => normalizeApplicationStatus(a.status) === col.key).map(app => (
-                  <div
-                    key={app.id}
-                    className={`kanban-card app-status-${normalizeApplicationStatus(app.status)}`}
-                    draggable
-                    onDragStart={() => setDragAppId(app.id)}
-                    onDragEnd={() => setDragAppId(null)}
-                  >
-                    <h4>{app.company || 'Untitled Company'}</h4>
-                    <p>{app.role || 'Role not set'}</p>
-                    <div className="kanban-card-meta">
-                      <span>{app.source || 'Source'}</span>
-                      <span>{app.date ? formatDateShort(app.date) : 'No date'}</span>
-                    </div>
-                  </div>
-                ))}
-                {!applications.some(a => normalizeApplicationStatus(a.status) === col.key) && (
-                  <div className="kanban-empty">No applications</div>
-                )}
-              </div>
+      <div className="tracker-panel-main">
+        {trackerMessage && <p className="profile-message">{trackerMessage}</p>}
+        {deadlineItems.length > 0 && (
+          <div className="profile-panel tracker-deadlines-bar">
+            <div className="tracker-section-head">
+              <h3><CalendarClock size={16} /> Upcoming Deadlines</h3>
             </div>
-          ))}
-        </div>
+            <div className="deadline-row-scroll">
+              {deadlineItems.slice(0, 4).map(item => (
+                <div key={item.id} className={`deadline-chip ${item.dayDiff < 0 ? 'overdue' : 'upcoming'}`}>
+                  <strong>{item.company}</strong>
+                  <span>{item.type} • {item.dayDiff < 0 ? 'Overdue' : `${item.dayDiff}d left`}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="tracker-insight-grid">
-        <div className="profile-panel">
-          <div className="tracker-section-head">
-            <h3><BarChart3 size={16} /> Source Analytics</h3>
-            <p>Find which channel converts to interviews.</p>
-          </div>
-          <div className="source-analytics-list">
-            {sourceRows.length ? sourceRows.map(row => (
-              <div key={row.source} className="source-analytics-item">
-                <div>
-                  <strong>{row.source}</strong>
-                  <p>{row.interview}/{row.total} reached interview+</p>
-                </div>
-                <div className="source-analytics-score">{row.interviewRate}%</div>
-              </div>
-            )) : <p className="r-desc">No source data yet.</p>}
-          </div>
-        </div>
 
-        <div className="profile-panel">
-          <div className="tracker-section-head">
-            <h3><BarChart3 size={16} /> Weekly Performance</h3>
-            <p>Last 7 days performance snapshot.</p>
-          </div>
-          <div className="weekly-metrics-grid">
-            <div className="weekly-metric"><span>Applications Sent</span><strong>{weeklySent}</strong></div>
-            <div className="weekly-metric"><span>Interviews Gained</span><strong>{weeklyInterview}</strong></div>
-            <div className="weekly-metric"><span>Responses</span><strong>{weeklyResponses}</strong></div>
-            <div className="weekly-metric"><span>Response Rate</span><strong>{weeklyResponseRate}%</strong></div>
-          </div>
-        </div>
-      </div>
 
-      <div className="tracker-insight-grid">
-        <div className="profile-panel">
-          <div className="tracker-section-head">
-            <h3><CalendarClock size={16} /> Deadline Tracker</h3>
-            <p>Assessment, interview, and offer deadlines.</p>
-          </div>
-          <div className="deadline-list">
-            {deadlineItems.length ? deadlineItems.map(item => (
-              <div key={item.id} className={`deadline-item ${item.dayDiff < 0 ? 'deadline-overdue' : item.dayDiff <= 3 ? 'deadline-soon' : 'deadline-upcoming'}`}>
-                <div>
-                  <strong>{item.company} - {item.role}</strong>
-                  <p>{item.type} • {formatDateShort(item.date)}</p>
-                </div>
-                <span>
-                  {item.dayDiff < 0 ? `${Math.abs(item.dayDiff)}d overdue` : item.dayDiff === 0 ? 'Due today' : `${item.dayDiff}d left`}
-                </span>
-              </div>
-            )) : <p className="r-desc">No upcoming deadlines.</p>}
-          </div>
-        </div>
-
-        <div className="profile-panel">
-          <div className="tracker-section-head">
-            <h3><BellRing size={16} /> Follow-up Reminders</h3>
-            <p>Auto reminders based on 5/7/10 day cadence.</p>
-          </div>
-          <div className="deadline-list">
-            {followUpReminders.length ? followUpReminders.map(item => (
-              <div key={`${item.appId}_${item.dueDate}`} className="deadline-item deadline-overdue">
-                <div>
-                  <strong>{item.company} - {item.role}</strong>
-                  <p>Follow-up due: {formatDateShort(item.dueDate)}</p>
-                </div>
-                <button className="btn btn-outline btn-sm" onClick={() => markFollowUpSent(item.appId)}>Mark Sent</button>
-              </div>
-            )) : <p className="r-desc">No follow-up reminders right now.</p>}
-          </div>
-        </div>
-      </div>
 
       <div className="profile-panel">
         {applications.map((app, idx) => (
@@ -1671,11 +1544,6 @@ function ApplicationTrackerPage({ onBackToTemplates, onCreateResume }) {
                 </div>
 
                 <div className="row-2">
-                  <div className="field"><label>Recruiter Name</label><input className="input" value={app.recruiter || ''} onChange={e => setAppField(app.id, 'recruiter', e.target.value)} placeholder="Recruiter / Hiring Manager" /></div>
-                  <div className="field"><label>Recruiter Email</label><input className="input" value={app.recruiterEmail || ''} onChange={e => setAppField(app.id, 'recruiterEmail', e.target.value)} placeholder="name@company.com" /></div>
-                </div>
-
-                <div className="row-3">
                   <div className="field">
                     <label>Status</label>
                     <select
@@ -1687,18 +1555,8 @@ function ApplicationTrackerPage({ onBackToTemplates, onCreateResume }) {
                     </select>
                   </div>
                   <div className="field"><label>Applied Date</label><input className="input" type="date" value={app.date || ''} onChange={e => setAppField(app.id, 'date', e.target.value)} /></div>
-                  <div className="field">
-                    <label>Follow-up Cadence</label>
-                    <select className="input" value={String(app.followUpCadenceDays || 7)} onChange={e => setAppField(app.id, 'followUpCadenceDays', Number(e.target.value))}>
-                      {FOLLOW_UP_CADENCE.map(n => <option key={n} value={n}>{n} days</option>)}
-                    </select>
-                  </div>
                 </div>
 
-                <div className="row-2">
-                  <div className="field"><label>Last Response Date</label><input className="input" type="date" value={app.lastResponseDate || ''} onChange={e => setAppField(app.id, 'lastResponseDate', e.target.value)} /></div>
-                  <div className="field"><label>Last Follow-up Date</label><input className="input" type="date" value={app.lastFollowUpDate || ''} onChange={e => setAppField(app.id, 'lastFollowUpDate', e.target.value)} /></div>
-                </div>
 
                 <div className="tracker-subsection">
                   <div className="tracker-subsection-head">
@@ -1754,18 +1612,10 @@ function ApplicationTrackerPage({ onBackToTemplates, onCreateResume }) {
         ))}
         <button className="btn-add" onClick={addApp}><Plus size={14} /> Add Application</button>
       </div>
-
-      <div className="profile-panel" style={{ marginTop: 14 }}>
-        <div className="ats-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-          <h4><TrendingUp size={14} /> Feedback Loop Tips</h4>
-          <ul className="ats-tips">
-            {appFeedbackTips.map((tip, i) => <li key={i}>{tip}</li>)}
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }
+
 
 /* ===================== RESUME PREVIEW COMPONENT ===================== */
 function ResumePreview({ data, templateId, isThumbnail, settings, resumeRef }) {
@@ -2725,12 +2575,14 @@ function App() {
     const savedProfile = readStorageObject(STORAGE_KEYS.userProfile, null);
     return (savedProfile && savedProfile.name) ? 'gallery' : 'landing';
   });  // landing | workflow | login | gallery | profile | tracker | builder
+  const [menuOpen, setMenuOpen] = useState(false);
   const [postLoginView, setPostLoginView] = useState('gallery');
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [backendStatus, setBackendStatus] = useState({ running: false, groqConfigured: false });
   const [resumeHistory, setResumeHistory] = useState(() => readStorageArray(STORAGE_KEYS.resumeHistory, []));
   const [builderDraft, setBuilderDraft] = useState(null);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -3001,13 +2853,15 @@ function App() {
         user={user}
         onUserProfile={() => setView('profile')}
         onOpenTracker={() => handleRequireAuth('tracker')}
-        onLogout={() => { setUser(null); setView('landing'); }}
+        onLogout={() => { signOutUser(); setUser(null); setView('landing'); }}
         onLogoClick={handleLogoClick}
         onSignIn={handleSignIn}
         view={view}
         hasResume={false}
         selectedTemplate={selectedTemplate}
         resumeData={null}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
       />
       <main className="app-main">
         {view === 'landing' && (
@@ -3040,6 +2894,7 @@ function App() {
             onUpdateProfile={handleUpdateProfile}
             onChangePassword={handleChangePassword}
             onClearHistory={() => setResumeHistory([])}
+            onLogout={() => { signOutUser(); setUser(null); setView('landing'); }}
           />
         )}
         {view === 'tracker' && (
