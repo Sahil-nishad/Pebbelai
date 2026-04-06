@@ -238,6 +238,35 @@ function Toast({ message, type, onDone }) {
   );
 }
 
+function MobileBottomNav({ user, view, onViewChange, onOpenTracker }) {
+  if (!user || view === 'landing' || view === 'login') return null;
+
+  return (
+    <div className="mobile-bottom-nav">
+      <button 
+        className={`m-nav-item ${view === 'gallery' || view === 'builder' ? 'active' : ''}`} 
+        onClick={() => onViewChange('gallery')}
+      >
+        <Layout size={20} />
+        <span>Resumes</span>
+      </button>
+      <button 
+        className={`m-nav-item ${view === 'tracker' ? 'active' : ''}`} 
+        onClick={onOpenTracker}
+      >
+        <ClipboardList size={20} />
+        <span>Tracker</span>
+      </button>
+      <button 
+        className={`m-nav-item ${view === 'profile' ? 'active' : ''}`} 
+        onClick={() => onViewChange('profile')}
+      >
+        <User size={20} />
+        <span>Profile</span>
+      </button>
+    </div>
+  );
+}
 /* ===================== NAVBAR ===================== */
 function Navbar({
   user,
@@ -260,25 +289,25 @@ function Navbar({
         </a>
         <div className="navbar-actions">
           {hasResume && (
-            <>
+            <div className="navbar-builder-actions hide-on-mobile">
               <button className="btn btn-outline btn-sm" onClick={() => downloadLatex(selectedTemplate, resumeData)}>
                 <FileCode2 size={14} /> Export .tex
               </button>
               <button className="btn btn-black btn-sm" onClick={() => exportToPDF('resume-render')}>
                 <Download size={14} /> Download PDF
               </button>
-            </>
+            </div>
           )}
           {user ? (
             <>
-              <button className="btn btn-outline btn-sm" onClick={onOpenTracker}>
+              <button className="btn btn-outline btn-sm hide-on-mobile" onClick={onOpenTracker}>
                 <ClipboardList size={14} /> Tracker
               </button>
               <div className="user-pill" onClick={onUserProfile} title="Open profile">
                 <div className="user-avatar">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
                 <span>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</span>
               </div>
-              <button className="btn btn-outline btn-sm" onClick={onLogout}>
+              <button className="btn btn-outline btn-sm btn-signout-hidden" onClick={onLogout} style={{ display: 'none' }}>
                 Sign Out
               </button>
             </>
@@ -1043,6 +1072,27 @@ function UserProfilePage({
           <button className="btn btn-black btn-sm" onClick={handleUpdatePassword}>Update Password</button>
           {passwordMsg && <p className="profile-message">{passwordMsg}</p>}
         </div>
+      </div>
+
+      <div className="profile-panel" style={{ marginTop: 14 }}>
+        <h3>Account Management</h3>
+        <p className="r-desc">Sign out of your account on this device.</p>
+        <button 
+          className="btn btn-outline btn-full btn-sm" 
+          onClick={() => {
+            if (window.confirm('Are you sure you want to sign out?')) {
+              window.location.href = '/'; 
+              setTimeout(() => {
+                const logoutBtn = document.querySelector('.btn-signout-hidden');
+                if (logoutBtn) logoutBtn.click();
+                else window.location.reload();
+              }, 100);
+            }
+          }}
+          style={{ color: '#dc2626', borderColor: '#fee2e2' }}
+        >
+          Sign Out of Account
+        </button>
       </div>
 
       <div className="section-separator">
@@ -2991,6 +3041,12 @@ function App() {
         )}
       </main>
       <SiteFooter />
+      <MobileBottomNav 
+        user={user} 
+        view={view} 
+        onViewChange={setView} 
+        onOpenTracker={() => setView('tracker')}
+      />
     </div>
   );
 }

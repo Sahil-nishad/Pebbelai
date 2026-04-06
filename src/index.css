@@ -3390,9 +3390,48 @@ body {
   }
 }
 
+.hide-on-mobile {
+  display: flex !important;
+}
+
 @media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .navbar-logo-text span {
+    display: none; /* Hide the 'AI' on very small logo to save space */
+  }
+
+  .navbar-logo-text {
+    font-size: 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .navbar-logo-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+  }
+
+  .user-pill span {
+    display: none; /* Only show avatar on mobile to save space */
+  }
+
+  .user-pill {
+    padding: 2px;
+    border: none;
+    background: transparent;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
   .navbar-inner {
-    padding: 0 20px;
+    justify-content: space-between;
+    height: 56px;
   }
 
   .navbar-logo-text {
@@ -3555,6 +3594,65 @@ body {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* --- Mobile Bottom Nav --- */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--gray-200);
+  padding: 0 16px;
+  z-index: 1000;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex;
+  }
+  
+  .app-main {
+    padding-bottom: 74px; /* Space for bottom nav */
+  }
+}
+
+.m-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--gray-400);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  flex: 1;
+}
+
+.m-nav-item.active {
+  color: var(--black);
+}
+
+.m-nav-item svg {
+  transition: transform 0.2s ease;
+}
+
+.m-nav-item:active svg {
+  transform: scale(0.9);
+}
+
+.m-nav-item.active span {
+  font-weight: 600;
 }
 
 @media (max-width: 460px) {
