@@ -119,10 +119,10 @@ body {
 }
 
 .navbar-inner {
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 32px;
-  height: 56px;
+  height: 64px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -162,8 +162,9 @@ body {
 
 .navbar-actions {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .user-pill {
@@ -3423,15 +3424,6 @@ body {
   }
 
   .navbar-logo-text span {
-    display: none; /* Hide the 'AI' on very small logo to save space */
-  }
-
-  .navbar-logo-text {
-    font-size: 14px;
-    letter-spacing: -0.01em;
-  }
-
-  .navbar-logo-icon {
     width: 28px !important;
     height: 28px !important;
     font-size: 14px !important;
