@@ -385,7 +385,7 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
               <li>Live ATS score syncing</li>
               <li>JD match and keyword guidance</li>
             </ul>
-            <button className="btn btn-black btn-sm" onClick={onOpenResumeFlow}>
+            <button className="btn btn-black btn-sm" onClick={() => handleRequireAuth('gallery')}>
               Go To Resume Builder
             </button>
           </article>
@@ -2943,7 +2943,7 @@ function App() {
       <main className="app-main">
         {view === 'landing' && (
           <LandingPage
-            onOpenResumeFlow={() => handleRequireAuth('workflow')}
+            onOpenResumeFlow={() => handleRequireAuth('gallery')}
             onOpenTrackerPreview={() => handleRequireAuth('tracker')}
           />
         )}
