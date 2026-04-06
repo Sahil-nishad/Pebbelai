@@ -4074,13 +4074,20 @@ body {
     grid-template-columns: 1fr;
   }
 
-  /* Gallery slide further shrink */
+  /* Gallery slide further shrink - Actually make it BIGGER as requested for better visibility */
   .gallery-slide {
-    width: 170px;
+    width: 220px;
   }
 
   .gallery-slider-track {
-    min-height: 440px;
+    min-height: 520px;
+  }
+
+  .workflow-stage-grid,
+  .platform-pillar-grid,
+  .workflow-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
   }
 }
 
@@ -4173,12 +4180,13 @@ body {
   }
 
   .gallery-slide {
-    width: 150px;
+    width: 200px;
   }
 
   .gallery-slider-track {
-    min-height: 380px;
+    min-height: 480px;
   }
+
 
   .slider-btn {
     width: 36px;

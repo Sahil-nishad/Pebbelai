@@ -806,14 +806,35 @@ function TemplateGallery({ templates, onSelect }) {
   const isMobile = viewportWidth <= 768;
   const isSmall = viewportWidth <= 460;
   const sliderOffsets = {
-    adjacent: isSmall ? 160 : isMobile ? 210 : 330,
-    far: isSmall ? 260 : isMobile ? 340 : 500,
-    farStep: isSmall ? 60 : isMobile ? 70 : 110,
-    activeScale: isSmall ? 1.05 : 1.12,
-    adjScale: isSmall ? 0.82 : 0.9,
-    farScale: isSmall ? 0.65 : 0.75,
-    adjRotate: isMobile ? 10 : 15,
-    farRotate: isMobile ? 18 : 25,
+    adjacent: isSmall ? 200 : isMobile ? 260 : 330,
+    far: isSmall ? 320 : isMobile ? 400 : 500,
+    farStep: isSmall ? 80 : isMobile ? 90 : 110,
+    activeScale: isSmall ? 1.08 : 1.12,
+    adjScale: isSmall ? 0.85 : 0.9,
+    farScale: isSmall ? 0.7 : 0.75,
+    adjRotate: isMobile ? 8 : 15,
+    farRotate: isMobile ? 14 : 25,
+  };
+
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) handleNext();
+    if (isRightSwipe) handlePrev();
   };
 
   return (
@@ -849,7 +870,13 @@ function TemplateGallery({ templates, onSelect }) {
           </svg>
         </button>
 
-        <div className="gallery-slider-track">
+        <div 
+          className="gallery-slider-track"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+
           {templates.map((t, index) => {
             let diff = index - modIndex;
             if (diff > N / 2) diff -= N;
