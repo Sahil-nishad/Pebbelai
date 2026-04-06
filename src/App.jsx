@@ -314,33 +314,9 @@ function Navbar({
               <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)}>
                 {menuOpen ? <Plus size={24} style={{ transform: 'rotate(45deg)' }} /> : <Layout size={24} />}
               </button>
-
-              {menuOpen && (
-                <div className="nav-menu-overlay" onClick={() => setMenuOpen(false)}>
-                  <div className="nav-menu" onClick={e => e.stopPropagation()}>
-                    <div className="nav-menu-header">
-                      <div className="user-avatar-large">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
-                      <div className="nav-menu-user-info">
-                        <strong>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</strong>
-                        <span>{user?.email}</span>
-                      </div>
-                    </div>
-                    <div className="nav-menu-links">
-                      <button onClick={() => { setMenuOpen(false); onUserProfile(); }}>
-                        <User size={18} /> My Profile
-                      </button>
-                      <button onClick={() => { setMenuOpen(false); onOpenTracker(); }}>
-                        <ClipboardList size={18} /> Application Tracker
-                      </button>
-                      <button className="menu-logout-btn" onClick={() => { setMenuOpen(false); onLogout(); }}>
-                        <LogIn size={18} style={{ transform: 'rotate(180deg)' }} /> Sign Out
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           ) : (
+
             view !== 'login' && (
               <button className="btn btn-black btn-sm" onClick={onSignIn}>
                 <LogIn size={14} /> Sign In
@@ -2583,6 +2559,17 @@ function App() {
   const [builderDraft, setBuilderDraft] = useState(null);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
 
+  async function handleLogout() {
+    setMenuOpen(false);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+    setUser(null);
+    setView('landing');
+  }
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -2853,7 +2840,7 @@ function App() {
         user={user}
         onUserProfile={() => setView('profile')}
         onOpenTracker={() => handleRequireAuth('tracker')}
-        onLogout={() => { signOutUser(); setUser(null); setView('landing'); }}
+        onLogout={handleLogout}
         onLogoClick={handleLogoClick}
         onSignIn={handleSignIn}
         view={view}
@@ -2863,6 +2850,32 @@ function App() {
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
       />
+
+      {user && menuOpen && (
+        <div className="nav-menu-overlay" onClick={() => setMenuOpen(false)}>
+          <div className="nav-menu" onClick={e => e.stopPropagation()}>
+            <div className="nav-menu-header">
+              <div className="user-avatar-large">{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "U").charAt(0).toUpperCase()}</div>
+              <div className="nav-menu-user-info">
+                <strong>{(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.name || user?.email || "User")}</strong>
+                <span>{user?.email}</span>
+              </div>
+            </div>
+            <div className="nav-menu-links">
+              <button onClick={() => { setMenuOpen(false); setView('profile'); }}>
+                <User size={18} /> My Profile
+              </button>
+              <button onClick={() => { setMenuOpen(false); setView('tracker'); }}>
+                <ClipboardList size={18} /> Application Tracker
+              </button>
+              <button className="menu-logout-btn" onClick={handleLogout}>
+                <LogIn size={18} style={{ transform: 'rotate(180deg)' }} /> Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="app-main">
         {view === 'landing' && (
           <LandingPage
@@ -2894,7 +2907,7 @@ function App() {
             onUpdateProfile={handleUpdateProfile}
             onChangePassword={handleChangePassword}
             onClearHistory={() => setResumeHistory([])}
-            onLogout={() => { signOutUser(); setUser(null); setView('landing'); }}
+            onLogout={handleLogout}
           />
         )}
         {view === 'tracker' && (

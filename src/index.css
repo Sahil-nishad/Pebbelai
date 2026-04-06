@@ -157,6 +157,8 @@ body {
   border: 1px solid var(--gray-200);
   cursor: pointer;
   transition: var(--transition);
+  max-width: 180px;
+  overflow: hidden;
 }
 
 .user-pill:hover {
@@ -175,6 +177,7 @@ body {
   justify-content: center;
   font-weight: 600;
   font-size: 13px;
+  flex-shrink: 0;
 }
 
 .user-avatar-large {
@@ -220,13 +223,14 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
   display: flex;
   justify-content: flex-end;
   padding: 20px;
 }
+
 
 .nav-menu {
   width: 320px;
