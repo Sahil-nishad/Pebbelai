@@ -177,11 +177,11 @@ function setSeoMeta(data) {
   ensureMetaTag('property', 'og:type').setAttribute('content', data.ogType || 'website');
   ensureMetaTag('property', 'og:url').setAttribute('content', canonicalUrl);
   ensureMetaTag('property', 'og:site_name').setAttribute('content', 'PEBELai');
-  ensureMetaTag('property', 'og:image').setAttribute('content', `${origin}/og-cover.svg`);
+  ensureMetaTag('property', 'og:image').setAttribute('content', `${origin}/pebel-logo.png`);
   ensureMetaTag('name', 'twitter:card').setAttribute('content', 'summary_large_image');
   ensureMetaTag('name', 'twitter:title').setAttribute('content', data.title);
   ensureMetaTag('name', 'twitter:description').setAttribute('content', data.description);
-  ensureMetaTag('name', 'twitter:image').setAttribute('content', `${origin}/og-cover.svg`);
+  ensureMetaTag('name', 'twitter:image').setAttribute('content', `${origin}/pebel-logo.png`);
   let canonical = document.head.querySelector('link[rel="canonical"]');
   if (!canonical) {
     canonical = document.createElement('link');
@@ -284,7 +284,7 @@ function Navbar({
     <nav className="navbar">
       <div className="navbar-inner">
         <a href="/" className="navbar-logo" onClick={e => { e.preventDefault(); onLogoClick(); }}>
-          <img src="/pebel-logo.jpg" alt="PEBELai" className="navbar-logo-img" />
+          <img src="/pebel-logo.svg" alt="PEBELai" className="navbar-logo-img" />
         </a>
         <div className="navbar-actions">
           {hasResume && (
@@ -523,7 +523,7 @@ function LoginPage({ onLogin }) {
     <div className="login-page">
       <div className="login-left">
         <div className="login-brand">
-          <img src="/pebel-logo.jpg" alt="PEBELai" style={{ height: 48, width: 'auto', marginBottom: 24 }} />
+          <img src="/pebel-logo.svg" alt="PEBELai" style={{ height: 100, width: 'auto', marginBottom: 32 }} />
         </div>
         <h1 className="login-headline">Professional results.<br/>Zero friction.</h1>
         <p className="login-subtext">Join 5,000+ professionals building ATS-optimized resumes that actually get read.</p>
@@ -781,12 +781,33 @@ function ResumeWorkflowPage({ onContinueToTemplates, onOpenTracker }) {
 function TemplateGallery({ templates, onSelect }) {
   const previewVersion = '20260402-rich';
   const [activeIndex, setActiveIndex] = useState(templates.length * 100);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleNext = () => setActiveIndex(i => i + 1);
   const handlePrev = () => setActiveIndex(i => i - 1);
 
   const N = templates.length;
   const modIndex = ((activeIndex % N) + N) % N;
+
+  // Responsive slider offsets based on viewport width
+  const isMobile = viewportWidth <= 768;
+  const isSmall = viewportWidth <= 460;
+  const sliderOffsets = {
+    adjacent: isSmall ? 160 : isMobile ? 210 : 330,
+    far: isSmall ? 260 : isMobile ? 340 : 500,
+    farStep: isSmall ? 60 : isMobile ? 70 : 110,
+    activeScale: isSmall ? 1.05 : 1.12,
+    adjScale: isSmall ? 0.82 : 0.9,
+    farScale: isSmall ? 0.65 : 0.75,
+    adjRotate: isMobile ? 10 : 15,
+    farRotate: isMobile ? 18 : 25,
+  };
 
   return (
     <div className="gallery-page">
@@ -838,37 +859,37 @@ function TemplateGallery({ templates, onSelect }) {
             let blur = 0;
 
             if (isActive) {
-              scale = 1.12;
+              scale = sliderOffsets.activeScale;
               translateX = 0;
               rotateY = 0;
               opacity = 1;
               blur = 0;
               zIndex = 100;
             } else if (diff === -1) {
-              scale = 0.9;
-              translateX = -330;
-              rotateY = 15;
+              scale = sliderOffsets.adjScale;
+              translateX = -sliderOffsets.adjacent;
+              rotateY = sliderOffsets.adjRotate;
               opacity = 0.8;
               blur = 0;
               zIndex = 90;
             } else if (diff === 1) {
-              scale = 0.9;
-              translateX = 330;
-              rotateY = -15;
+              scale = sliderOffsets.adjScale;
+              translateX = sliderOffsets.adjacent;
+              rotateY = -sliderOffsets.adjRotate;
               opacity = 0.8;
               blur = 0;
               zIndex = 90;
             } else if (diff < -1) {
-              scale = 0.75;
-              translateX = -500 - (absDiff - 2) * 110;
-              rotateY = 25;
+              scale = sliderOffsets.farScale;
+              translateX = -sliderOffsets.far - (absDiff - 2) * sliderOffsets.farStep;
+              rotateY = sliderOffsets.farRotate;
               opacity = absDiff > 3 ? 0 : 0.4;
               blur = 0;
               zIndex = 80 - absDiff;
             } else if (diff > 1) {
-              scale = 0.75;
-              translateX = 500 + (absDiff - 2) * 110;
-              rotateY = -25;
+              scale = sliderOffsets.farScale;
+              translateX = sliderOffsets.far + (absDiff - 2) * sliderOffsets.farStep;
+              rotateY = -sliderOffsets.farRotate;
               opacity = absDiff > 3 ? 0 : 0.4;
               blur = 0;
               zIndex = 80 - absDiff;

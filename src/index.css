@@ -121,7 +121,7 @@ body {
 .navbar-inner {
   max-width: 1400px;
   margin: 0 auto;
-  height: 64px;
+  height: 80px;
   padding: 0 24px;
   display: flex;
   align-items: center;
@@ -136,7 +136,7 @@ body {
 }
 
 .navbar-logo-img {
-  height: 44px;
+  height: 60px;
   width: auto;
   object-fit: contain;
 }
@@ -1177,9 +1177,6 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-  .navbar-logo-img {
-    height: 34px;
-  }
 
 .gallery-hero-card span {
   display: block;
@@ -3208,6 +3205,8 @@ body {
 }
 
 /* ════════════════ RESPONSIVE ════════════════ */
+
+/* ── 1320px: First collapse ── */
 @media (max-width: 1320px) {
   .landing-features {
     grid-template-columns: repeat(2, 1fr);
@@ -3224,6 +3223,7 @@ body {
   }
 }
 
+/* ── 1200px ── */
 @media (max-width: 1200px) {
   .builder-grid {
     grid-template-columns: minmax(360px, 420px) 1fr;
@@ -3241,6 +3241,7 @@ body {
   }
 }
 
+/* ── 1100px: Builder single column ── */
 @media (max-width: 1100px) {
   .builder-grid {
     grid-template-columns: 1fr;
@@ -3274,6 +3275,7 @@ body {
   }
 }
 
+/* ── 1024px: Tablet / landscape ── */
 @media (max-width: 1024px) {
   .landing-hero {
     grid-template-columns: 1fr;
@@ -3397,15 +3399,43 @@ body {
   .gallery-hero-strip {
     grid-template-columns: 1fr;
   }
+
+  /* Workflow hero panel: single column on tablet */
+  .workflow-hero-panel {
+    grid-template-columns: 1fr;
+  }
 }
 
+/* ── Desktop-only helper ── */
 .hide-on-mobile {
   display: flex !important;
 }
 
+/* ── 768px: Mobile breakpoint ── */
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;
+  }
+
+  /* -- Navbar cleanup -- */
+  .navbar-logo-img {
+    height: 48px;
+  }
+
+  .navbar-inner {
+    justify-content: space-between;
+    height: 72px;
+    padding: 0 16px;
+  }
+
+  .navbar-actions {
+    gap: 8px;
+    flex-shrink: 0;
+    width: auto;
+  }
+
+  .navbar-logo-text {
+    font-size: 15px;
   }
 
   .navbar-logo-text span {
@@ -3414,8 +3444,14 @@ body {
     font-size: 14px !important;
   }
 
+  /* Hide Sign In button on mobile — user signs in via landing CTA */
+  .navbar-actions > .btn-black.btn-sm {
+    display: none;
+  }
+
+  /* User pill: avatar only */
   .user-pill span {
-    display: none; /* Only show avatar on mobile to save space */
+    display: none;
   }
 
   .user-pill {
@@ -3427,20 +3463,30 @@ body {
   .user-avatar {
     width: 32px;
     height: 32px;
+    font-size: 14px;
   }
 
-  .navbar-inner {
-    justify-content: space-between;
-    height: 56px;
+  /* -- Landing page -- */
+  .landing-page {
+    padding: 36px 16px 64px;
   }
 
-  .navbar-logo-text {
-    font-size: 15px;
+  .landing-title {
+    font-size: clamp(36px, 10vw, 52px);
   }
 
-  /* Hide Sign In button on mobile to clean up navbar */
-  .navbar-actions .btn-black.btn-sm {
-    display: none;
+  .landing-subtitle {
+    font-size: 16px;
+  }
+
+  .landing-cta-row {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .landing-cta-row .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .landing-stats {
@@ -3450,32 +3496,188 @@ body {
     width: 100%;
   }
 
-  .stat-divider { display: none; }
+  .stat-divider {
+    display: none;
+  }
 
-  .navbar-actions {
-    width: 100%;
-    justify-content: flex-end;
+  .landing-resume-visual {
+    transform: scale(0.7);
+    margin-top: -30px;
+    margin-bottom: -40px;
+  }
+
+  .landing-features {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .landing-core-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* -- Login page -- */
+  .login-page {
+    padding: 24px 16px;
+    gap: 24px;
+  }
+
+  .login-headline {
+    font-size: 32px;
+  }
+
+  .login-card {
+    padding: 24px 20px;
+  }
+
+  /* -- Gallery page -- */
+  .gallery-page {
+    padding: 28px 12px 64px;
+  }
+
+  .gallery-header h1 {
+    font-size: clamp(26px, 7vw, 36px);
+  }
+
+  .gallery-header p {
+    font-size: 14px;
+  }
+
+  /* Gallery slider: shrink cards & reduce translations for mobile */
+  .gallery-slider-container {
+    padding: 24px 0 60px;
+  }
+
+  .gallery-slider-track {
+    min-height: 520px;
+  }
+
+  .gallery-slide {
+    width: 200px;
+  }
+
+  .slider-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .slider-btn-prev {
+    left: 8px;
+  }
+
+  .slider-btn-next {
+    right: 8px;
+  }
+
+  .gallery-item-footer {
+    padding: 12px 12px 14px;
+  }
+
+  .gallery-item-name {
+    font-size: 15px;
+  }
+
+  .gallery-item-cat {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .gallery-item-desc {
+    font-size: 12px;
+  }
+
+  /* -- Workflow page -- */
+  .workflow-page {
+    padding: 28px 14px 64px;
+  }
+
+  .workflow-hero-panel {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .workflow-hero-copy h1 {
+    font-size: clamp(26px, 6vw, 36px);
+  }
+
+  .workflow-hero-copy p {
+    font-size: 14px;
+  }
+
+  .workflow-stage-panel {
+    padding: 20px;
+  }
+
+  .workflow-stage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* -- Builder page -- */
+  .builder-top-bar {
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .builder-template-badge {
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .builder-status {
+    font-size: 11px;
+  }
+
+  .builder-form,
+  .builder-preview {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .preview-actions-bar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 10px;
+    padding: 10px;
+  }
+
+  .preview-label {
+    font-size: 12px;
+  }
+
+  .preview-btns {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .preview-btns .btn {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    padding: 8px 10px;
   }
 
   .builder-core-strip {
     grid-template-columns: 1fr;
   }
 
-  .preview-btns {
-    width: 100%;
-    justify-content: flex-start;
+  /* -- Dashboard -- */
+  .dashboard-page {
+    padding: 24px 14px 72px;
   }
 
-  .ats-body {
+  .dashboard-header {
     flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
+    gap: 12px;
+  }
+
+  .dashboard-actions {
+    width: 100%;
+  }
+
+  .dashboard-actions .btn {
+    flex: 1;
+    font-size: 13px;
   }
 
   .tracker-stats {
@@ -3488,10 +3690,6 @@ body {
 
   .weekly-metrics-grid {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .landing-core-grid {
-    grid-template-columns: 1fr;
   }
 
   .tracker-app-summary {
@@ -3507,8 +3705,93 @@ body {
     justify-content: space-between;
     width: 100%;
   }
+
+  /* -- ATS modal -- */
+  .ats-modal-overlay {
+    padding: 12px;
+  }
+
+  .ats-modal {
+    max-width: 100%;
+    border-radius: var(--radius-md);
+  }
+
+  .ats-body {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .ats-ring {
+    margin: 0 auto;
+  }
+
+  /* -- CTA buttons global touch targets -- */
+  .btn {
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    min-height: 38px;
+  }
+
+  .btn-xl {
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+
+  /* -- Pillar cards CTA -- */
+  .pillar-card .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* -- Profile -- */
+  .profile-overview-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .profile-overview-meta {
+    width: 100%;
+  }
+
+  .profile-overview-meta div {
+    min-width: 0;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* History */
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-actions {
+    flex-direction: column;
+  }
+
+  .history-actions .btn {
+    width: 100%;
+  }
+
+  /* FAQ */
+  .landing-faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Toast for bottom nav */
+  .toast-stack {
+    bottom: 80px;
+    right: 12px;
+    left: 12px;
+  }
 }
 
+/* ── 640px ── */
 @media (max-width: 640px) {
   .row-2 {
     grid-template-columns: 1fr;
@@ -3522,26 +3805,6 @@ body {
     flex-direction: column;
   }
 
-  .history-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .gallery-header h1 {
-    font-size: 30px;
-  }
-
-  .landing-title {
-    font-size: clamp(34px, 9vw, 44px);
-  }
-
-  .landing-subtitle {
-    font-size: 16px;
-  }
-
-  .landing-features {
-    grid-template-columns: 1fr;
-  }
-
   .landing-copy-card,
   .faq-card,
   .pillar-card,
@@ -3549,7 +3812,23 @@ body {
   .workflow-stage-card,
   .workflow-hero-panel,
   .workflow-stage-panel {
-    padding: 18px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .section-body {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .builder-form,
+  .builder-preview {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .preview-empty-state {
+    min-height: 420px;
   }
 
   .tracker-stats {
@@ -3560,39 +3839,13 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .landing-stats {
-    gap: 16px;
-    flex-wrap: wrap;
+  /* Gallery slide further shrink */
+  .gallery-slide {
+    width: 170px;
   }
 
-  .stat-divider {
-    display: none;
-  }
-
-  .section-body {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  .builder-form,
-  .builder-preview {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .preview-empty-state {
-    min-height: 520px;
-  }
-
-  .toast-stack {
-    right: 12px;
-    left: 12px;
-    bottom: 12px;
-  }
-
-  .toast {
-    width: 100%;
-    justify-content: center;
+  .gallery-slider-track {
+    min-height: 440px;
   }
 }
 
@@ -3618,9 +3871,9 @@ body {
   .mobile-bottom-nav {
     display: flex;
   }
-  
+
   .app-main {
-    padding-bottom: 74px; /* Space for bottom nav */
+    padding-bottom: 74px;
   }
 }
 
@@ -3637,6 +3890,8 @@ body {
   cursor: pointer;
   transition: var(--transition);
   flex: 1;
+  min-height: 44px;
+  justify-content: center;
 }
 
 .m-nav-item.active {
@@ -3655,32 +3910,82 @@ body {
   font-weight: 600;
 }
 
+/* ── 460px: Small phones ── */
 @media (max-width: 460px) {
-  .btn {
+  /* Buttons go full-width ONLY in known containers */
+  .landing-cta-row .btn,
+  .login-form-minimal .btn,
+  .preview-btns .btn,
+  .history-actions .btn,
+  .dashboard-actions .btn {
     width: 100%;
-  }
-
-  .preview-btns .btn {
-    width: 100%;
-  }
-
-  .user-pill {
-    width: 100%;
-    justify-content: center;
   }
 
   .builder-top-bar {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 10px;
+    padding-right: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 
   .builder-template-badge {
-    font-size: 13px;
+    font-size: 12px;
+  }
+
+  .builder-status {
+    justify-content: center;
+  }
+
+  .gallery-slide {
+    width: 150px;
+  }
+
+  .gallery-slider-track {
+    min-height: 380px;
+  }
+
+  .slider-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .slider-btn-prev {
+    left: 4px;
+  }
+
+  .slider-btn-next {
+    right: 4px;
+  }
+
+  .navbar-inner {
+    padding: 0 12px;
+  }
+
+  .landing-page {
+    padding: 28px 12px 56px;
+  }
+
+  .landing-section-head h2 {
+    font-size: clamp(24px, 6vw, 32px);
+  }
+
+  .landing-section-head p {
+    font-size: 14px;
+  }
+
+  /* Profile overview stacks fully */
+  .profile-overview-meta {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .user-pill {
+    width: auto;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
