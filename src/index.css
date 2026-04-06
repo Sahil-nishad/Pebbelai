@@ -565,7 +565,8 @@ body {
 .landing-page {
   max-width: 1220px;
   margin: 0 auto;
-  padding: 80px 32px 100px;
+  padding: 60px 40px 100px;
+  width: 100%;
 }
 
 .landing-hero {
@@ -1038,10 +1039,10 @@ body {
 .login-page {
   display: grid;
   grid-template-columns: 1fr 440px;
-  min-height: calc(100vh - 56px);
-  max-width: 1200px;
+  min-height: calc(100vh - 80px);
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 40px;
   gap: 80px;
   align-items: center;
 }
@@ -1145,8 +1146,9 @@ body {
 .workflow-page {
   max-width: 1220px;
   margin: 0 auto;
-  padding: 52px 32px 88px;
+  padding: 52px 40px 88px;
   animation: page-enter 280ms ease both;
+  width: 100%;
 }
 
 .workflow-hero-panel,
@@ -3646,195 +3648,160 @@ body {
   display: flex !important;
 }
 
-/* ── 768px: Mobile breakpoint ── */
+/* ══════════════════════════════════════
+   RESPONSIVE: 1024px — Tablet Landscape
+══════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .landing-page,
+  .workflow-page,
+  .gallery-page {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .login-page {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 40px 24px 60px;
+    gap: 40px;
+  }
+
+  .login-left {
+    display: none; /* Hide testimonial on tablet to save space */
+  }
+
+  .login-right {
+    max-width: 440px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .landing-hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    text-align: center;
+  }
+
+  .landing-resume-visual {
+    display: none;
+  }
+
+  .landing-cta-row {
+    justify-content: center;
+  }
+
+  .landing-stats {
+    justify-content: center;
+  }
+
+  .workflow-hero-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-hero-stack {
+    display: none;
+  }
+
+  .workflow-stage-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tracker-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-hero-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-overview-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .profile-overview-meta {
+    width: 100%;
+  }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE: 768px — Mobile
+══════════════════════════════════════ */
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;
   }
 
-  /* -- Navbar cleanup -- */
-  .navbar-logo-img {
-    height: 48px;
+  /* ─── NAVBAR ─── */
+  .navbar-inner {
+    height: 64px;
+    padding: 0 16px;
   }
 
-  .navbar-inner {
-    justify-content: space-between;
-    height: 72px;
-    padding: 0 16px;
+  .navbar-logo-img {
+    height: 44px;
   }
 
   .navbar-actions {
     gap: 8px;
-    flex-shrink: 0;
-    width: auto;
   }
 
-  .navbar-logo-text {
-    font-size: 15px;
-  }
-
-  .navbar-logo-text span {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 14px !important;
-  }
-
-  /* Hide Sign In button on mobile — user signs in via landing CTA */
+  /* On mobile: hide Sign In button — user scrolls to embedded login */
   .navbar-actions > .btn-black.btn-sm {
-    display: none;
+    font-size: 12px;
+    padding: 6px 12px;
+    display: flex;
   }
 
-  /* User pill: avatar only */
-  .user-pill span {
-    display: none;
-  }
-
-  .user-pill {
-    padding: 2px;
-    border: none;
-    background: transparent;
-  }
-
-  .user-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
-  }
-
-  /* --- Onboarding Choice Page --- */
-.choice-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 80px 32px;
-  text-align: center;
-}
-
-.choice-header {
-  margin-bottom: 48px;
-}
-
-.choice-header h1 {
-  font-family: var(--font-serif);
-  font-size: clamp(28px, 4vw, 40px);
-  margin-bottom: 12px;
-  color: var(--black);
-}
-
-.choice-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-}
-
-.choice-card {
-  padding: 48px 32px;
-  border: 1px solid var(--gray-200);
-  border-radius: 32px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.choice-card:hover {
-  transform: translateY(-8px);
-  border-color: var(--black);
-  box-shadow: 0 32px 64px -12px rgba(17, 24, 39, 0.1);
-}
-
-.choice-icon-wrap {
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.choice-icon-wrap.builder {
-  background: var(--gray-50);
-  color: var(--black);
-}
-
-.choice-icon-wrap.tracker {
-  background: #f0f7ff;
-  color: #2563eb;
-}
-
-.choice-card h2 {
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.choice-card p {
-  font-size: 15px;
-  color: var(--gray-600);
-  line-height: 1.65;
-  margin-bottom: 12px;
-}
-
-@media (max-width: 640px) {
-  .choice-grid {
-    grid-template-columns: 1fr;
-  }
-  .choice-page {
-    padding: 40px 16px;
-  }
-}
-
-/* Integrated Login Styles */
-.landing-signin-integrated {
-  padding: 80px 24px;
-  background: #f9fafb;
-  border-radius: 40px;
-  margin: 64px 32px;
-}
-
-.login-integrated {
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 0;
-  display: block;
-}
-.login-integrated .login-card {
-  box-shadow: none;
-  background: transparent;
-  padding: 0;
-}
-
-.landing-login-success {
-  text-align: center;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-@media (max-width: 640px) {
-  .landing-signin-integrated {
-    margin: 40px 16px;
-    padding: 60px 16px;
-  }
-}
-
-  /* -- Landing page -- */
+  /* ─── LANDING PAGE ─── */
   .landing-page {
-    padding: 36px 16px 64px;
+    padding: 32px 16px 64px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .landing-hero {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    margin-bottom: 48px;
+    gap: 24px;
+  }
+
+  .landing-hero-copy {
+    width: 100%;
+  }
+
+  .landing-resume-visual {
+    display: none; /* hidden on mobile — saves space */
+  }
+
+  .landing-badge {
+    margin: 0 auto 20px;
   }
 
   .landing-title {
-    font-size: clamp(36px, 10vw, 52px);
+    font-size: clamp(36px, 9vw, 52px);
+    margin-bottom: 16px;
   }
 
   .landing-subtitle {
     font-size: 16px;
+    margin-bottom: 28px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .landing-cta-row {
     flex-direction: column;
     width: 100%;
+    gap: 10px;
   }
 
   .landing-cta-row .btn {
@@ -3845,261 +3812,260 @@ body {
   .landing-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
+    margin-top: 28px;
   }
 
   .stat-divider {
     display: none;
   }
 
-  .landing-resume-visual {
-    transform: scale(0.7);
-    margin-top: -30px;
-    margin-bottom: -40px;
-  }
-
   .landing-features {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .landing-core-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
-  /* -- Login page -- */
+  .platform-pillar-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .workflow-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .landing-section-head {
+    margin-bottom: 40px;
+    padding: 0 8px;
+  }
+
+  .landing-section-head h2 {
+    font-size: clamp(26px, 7vw, 36px);
+  }
+
+  .landing-section-head p {
+    font-size: 15px;
+  }
+
+  .landing-faq-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .landing-platform-split,
+  .landing-workflow {
+    margin-top: 24px;
+  }
+
+  /* ─── INTEGRATED LOGIN SECTION ─── */
+  .landing-signin-integrated {
+    margin: 36px 0;
+    padding: 40px 16px;
+    border-radius: 24px;
+  }
+
+  .login-integrated {
+    max-width: 100%;
+  }
+
+  /* ─── STANDALONE LOGIN PAGE ─── */
   .login-page {
-    padding: 24px 16px;
-    gap: 24px;
+    grid-template-columns: 1fr;
+    padding: 24px 16px 48px;
+    gap: 0;
+    min-height: auto;
   }
 
-  .login-headline {
-    font-size: 32px;
+  .login-left {
+    display: none;
+  }
+
+  .login-right {
+    width: 100%;
   }
 
   .login-card {
     padding: 24px 20px;
+    border-radius: 20px;
   }
 
-  /* -- Gallery page -- */
+  /* ─── CHOICE PAGE ─── */
+  .choice-page {
+    padding: 40px 16px 60px;
+    max-width: 100%;
+  }
+
+  .choice-header {
+    margin-bottom: 32px;
+  }
+
+  .choice-header h1 {
+    font-size: clamp(24px, 7vw, 34px);
+  }
+
+  .choice-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .choice-card {
+    padding: 32px 24px;
+    border-radius: 24px;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 16px;
+  }
+
+  .choice-icon-wrap {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 14px;
+    margin-bottom: 0;
+  }
+
+  .choice-card-text {
+    flex: 1;
+  }
+
+  .choice-card h2 {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .choice-card p {
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+
+  .choice-card .btn {
+    display: none; /* The whole card is clickable on mobile */
+  }
+
+  /* ─── GALLERY PAGE ─── */
   .gallery-page {
-    padding: 28px 12px 64px;
+    padding: 24px 0 60px; /* Zero side padding — slider fills full width */
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .gallery-header {
+    padding: 0 16px;
+    margin-bottom: 20px;
   }
 
   .gallery-header h1 {
-    font-size: clamp(26px, 7vw, 36px);
+    font-size: clamp(22px, 6vw, 32px);
   }
 
   .gallery-header p {
     font-size: 14px;
   }
 
-  /* Gallery slider: shrink cards & reduce translations for mobile */
+  .gallery-hero-strip {
+    display: none; /* Remove stats strip on mobile — wastes vertical space */
+  }
+
   .gallery-slider-container {
-    padding: 24px 0 60px;
+    padding: 16px 0 48px;
+    width: 100%;
   }
 
   .gallery-slider-track {
-    min-height: 520px;
+    min-height: 500px;
   }
 
   .gallery-slide {
-    width: 200px;
+    width: 210px;
   }
 
   .slider-btn {
     width: 40px;
     height: 40px;
+    top: 40%;
   }
 
-  .slider-btn-prev {
-    left: 8px;
-  }
-
-  .slider-btn-next {
-    right: 8px;
-  }
+  .slider-btn-prev { left: 8px; }
+  .slider-btn-next { right: 8px; }
 
   .gallery-item-footer {
     padding: 12px 12px 14px;
   }
 
-  .gallery-item-name {
-    font-size: 15px;
-  }
+  .gallery-item-name { font-size: 14px; }
+  .gallery-item-cat { font-size: 10px; }
+  .gallery-item-desc { font-size: 12px; }
 
-  .gallery-item-cat {
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-
-  .gallery-item-desc {
-    font-size: 12px;
-  }
-
-  /* -- Workflow page -- */
-  .workflow-page {
-    padding: 28px 14px 64px;
-  }
-
-  .workflow-hero-panel {
-    grid-template-columns: 1fr;
-    padding: 20px;
-  }
-
-  .workflow-hero-copy h1 {
-    font-size: clamp(26px, 6vw, 36px);
-  }
-
-  .workflow-hero-copy p {
-    font-size: 14px;
-  }
-
-  .workflow-stage-panel {
-    padding: 20px;
-  }
-
-  .workflow-stage-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* -- Builder page -- */
-  .builder-top-bar {
-    padding: 10px 14px;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .builder-template-badge {
-    font-size: 13px;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .builder-status {
-    font-size: 11px;
-  }
-
-  .builder-form,
-  .builder-preview {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  .preview-actions-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 10px;
-  }
-
-  .preview-label {
-    font-size: 12px;
-  }
-
-  .preview-btns {
-    width: 100%;
-    justify-content: stretch;
-  }
-
-  .preview-btns .btn {
-    flex: 1;
-    min-width: 0;
-    font-size: 12px;
-    padding: 8px 10px;
-  }
-
-  .builder-core-strip {
-    grid-template-columns: 1fr;
-  }
-
-  /* -- Dashboard -- */
+  /* ─── DASHBOARD (Profile & Tracker) ─── */
   .dashboard-page {
-    padding: 24px 14px 72px;
+    padding: 20px 16px 80px;
+    max-width: 100%;
   }
 
   .dashboard-header {
     flex-direction: column;
     gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 24px;
   }
 
   .dashboard-actions {
     width: 100%;
+    display: flex;
+    gap: 8px;
   }
 
   .dashboard-actions .btn {
     flex: 1;
     font-size: 13px;
+    justify-content: center;
   }
 
   .tracker-stats {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .kanban-board {
-    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .weekly-metrics-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .kanban-board {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .tracker-app-summary {
     grid-template-columns: 1fr;
-    align-items: flex-start;
   }
 
-  .tracker-app-summary-side {
-    justify-items: start;
+  .history-grid {
+    grid-template-columns: 1fr;
   }
 
-  .tracker-app-summary-actions {
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  /* -- ATS modal -- */
-  .ats-modal-overlay {
-    padding: 12px;
-  }
-
-  .ats-modal {
-    max-width: 100%;
-    border-radius: var(--radius-md);
-  }
-
-  .ats-body {
+  .history-actions {
     flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
+    gap: 8px;
   }
 
-  .ats-ring {
-    margin: 0 auto;
+  .history-actions .btn { width: 100%; }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
   }
 
-  /* -- CTA buttons global touch targets -- */
-  .btn {
-    min-height: 44px;
-  }
-
-  .btn-sm {
-    min-height: 38px;
-  }
-
-  .btn-xl {
-    padding: 14px 24px;
-    font-size: 15px;
-  }
-
-  /* -- Pillar cards CTA -- */
-  .pillar-card .btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* -- Profile -- */
   .profile-overview-card {
     flex-direction: column;
     align-items: flex-start;
@@ -4108,39 +4074,167 @@ body {
 
   .profile-overview-meta {
     width: 100%;
-  }
-
-  .profile-overview-meta div {
-    min-width: 0;
-  }
-
-  .profile-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* History */
-  .history-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .history-actions {
     flex-direction: column;
+    gap: 10px;
   }
 
-  .history-actions .btn {
+  /* ─── BUILDER ─── */
+  .builder-top-bar {
+    padding: 10px 16px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .builder-form,
+  .builder-preview {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .builder-core-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-actions-bar {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .preview-btns {
     width: 100%;
   }
 
-  /* FAQ */
-  .landing-faq-grid {
-    grid-template-columns: 1fr;
+  .preview-btns .btn {
+    flex: 1;
+    font-size: 12px;
+    padding: 8px 10px;
   }
 
-  /* Toast for bottom nav */
+  .preview-paper-a4 {
+    width: 100%;
+  }
+
+  /* ─── ATS MODAL ─── */
+  .ats-modal-overlay {
+    padding: 12px;
+  }
+
+  .ats-modal {
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .ats-body {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .ats-ring {
+    margin: 0 auto;
+  }
+
+  /* ─── GLOBAL TOUCH TARGETS ─── */
+  .btn {
+    min-height: 44px;
+  }
+
+  .btn-xl {
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+
+  .pillar-card .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Toast position above bottom nav */
   .toast-stack {
     bottom: 80px;
     right: 12px;
     left: 12px;
+  }
+
+  /* App padded for bottom nav */
+  .app-main {
+    padding-bottom: 64px;
+  }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE: 460px — Small Phones
+══════════════════════════════════════ */
+@media (max-width: 460px) {
+  .landing-page {
+    padding: 24px 12px 56px;
+  }
+
+  .gallery-page {
+    padding: 20px 0 48px;
+  }
+
+  .gallery-slide {
+    width: 190px;
+  }
+
+  .gallery-slider-track {
+    min-height: 460px;
+  }
+
+  .slider-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .choice-card {
+    padding: 24px 16px;
+    gap: 12px;
+  }
+
+  .choice-icon-wrap {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+
+  .navbar-inner {
+    padding: 0 12px;
+  }
+
+  .dashboard-page {
+    padding: 16px 12px 80px;
+  }
+
+  .row-2,
+  .row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-cta-row .btn,
+  .login-form-minimal .btn,
+  .dashboard-actions .btn {
+    width: 100%;
+  }
+
+  .builder-top-bar {
+    padding-left: 10px;
+    padding-right: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .landing-section-head h2 {
+    font-size: clamp(22px, 6vw, 30px);
+  }
+
+  .tracker-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-metrics-grid {
+    grid-template-columns: 1fr;
   }
 }
 
