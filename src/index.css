@@ -89,11 +89,18 @@ body {
 .dashboard-empty,
 .profile-overview-card,
 .core-card {
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 14px 40px rgba(17, 24, 39, 0.08);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  transition: var(--transition);
+}
+
+.feature-card:hover, .core-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  border-color: var(--gray-300);
 }
 
 /* ════════════════ NAVBAR ════════════════ */
@@ -240,12 +247,18 @@ body {
 .btn-black {
   background: var(--black);
   color: var(--white);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-black:hover {
-  background: var(--gray-800);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background: #111;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-black:active {
+  transform: translateY(0);
 }
 
 .btn-outline {
@@ -469,20 +482,22 @@ body {
 
 .landing-title {
   font-family: var(--font-serif);
-  font-size: clamp(36px, 5.2vw, 60px);
+  font-size: clamp(32px, 8vw, 64px);
   font-weight: 600;
-  line-height: 1.15;
-  margin-bottom: 24px;
+  line-height: 1.1;
+  margin-bottom: 20px;
   color: var(--black);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  animation: slideUpFade 0.6s ease both;
 }
 
 .landing-subtitle {
-  font-size: 17px;
+  font-size: 18px;
   color: var(--gray-500);
-  max-width: 590px;
-  margin: 0 0 30px;
-  line-height: 1.7;
+  max-width: 540px;
+  margin: 0 0 32px;
+  line-height: 1.6;
+  animation: slideUpFade 0.6s ease 0.1s both;
 }
 
 .landing-cta-row {
@@ -687,7 +702,11 @@ body {
   padding: 26px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.72));
   box-shadow: var(--shadow-sm);
+  animation: slideUpFade 0.7s ease both;
 }
+
+.pillar-card:nth-child(1) { animation-delay: 0.2s; }
+.pillar-card:nth-child(2) { animation-delay: 0.3s; }
 
 .pillar-card-top {
   display: inline-flex;
@@ -745,7 +764,12 @@ body {
   padding: 22px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: var(--shadow-sm);
+  animation: slideUpFade 0.6s ease both;
 }
+
+.workflow-step:nth-child(1) { animation-delay: 0.1s; }
+.workflow-step:nth-child(2) { animation-delay: 0.2s; }
+.workflow-step:nth-child(3) { animation-delay: 0.3s; }
 
 .workflow-step-num {
   display: inline-flex;
@@ -3101,26 +3125,32 @@ body {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
 
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ════════════════ TOAST ════════════════ */
@@ -3238,14 +3268,14 @@ body {
 @media (max-width: 1024px) {
   .landing-hero {
     grid-template-columns: 1fr;
-  }
-
-  .workflow-hero-panel {
-    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 48px;
   }
 
   .landing-content {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .landing-subtitle {
@@ -3356,13 +3386,21 @@ body {
 
 @media (max-width: 768px) {
   .navbar-inner {
-    height: auto;
-    min-height: 56px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    flex-wrap: wrap;
-    gap: 10px;
+    padding: 0 20px;
   }
+
+  .navbar-logo-text {
+    font-size: 15px;
+  }
+
+  .landing-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .stat-divider { display: none; }
 
   .navbar-actions {
     width: 100%;
