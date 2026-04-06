@@ -129,20 +129,20 @@ function safeCopy(text, onOk, onErr) {
 
 const LANDING_FAQS = [
   {
-    q: 'Is Pabble AI good for ATS resumes?',
-    a: 'Yes. Pabble AI helps create ATS-friendly resumes with cleaner structure, keyword guidance, one-page fitting, and AI-powered ATS scoring.',
+    q: 'Is PEBELai good for ATS resumes?',
+    a: 'Yes. PEBELai helps create ATS-friendly resumes with cleaner structure, keyword guidance, one-page fitting, and AI-powered ATS scoring.',
   },
   {
     q: 'Can I check my resume against a job description?',
     a: 'Yes. You can compare your resume with a target job description, review missing keywords, and improve role alignment before applying.',
   },
   {
-    q: 'Does Pabble AI include resume templates for freshers and experienced professionals?',
+    q: 'Does PEBELai include resume templates for freshers and experienced professionals?',
     a: 'Yes. The platform includes multiple professional LaTeX resume templates suitable for students, freshers, experienced candidates, and technical roles.',
   },
   {
-    q: 'Can I track applications inside Pabble AI?',
-    a: 'Yes. Pabble AI includes an application tracker with pipeline stages, follow-up reminders, interview round notes, deadlines, analytics, and weekly progress reporting.',
+    q: 'Can I track applications inside PEBELai?',
+    a: 'Yes. PEBELai includes an application tracker with pipeline stages, follow-up reminders, interview round notes, deadlines, analytics, and weekly progress reporting.',
   },
 ];
 
@@ -176,7 +176,7 @@ function setSeoMeta(data) {
   ensureMetaTag('property', 'og:description').setAttribute('content', data.description);
   ensureMetaTag('property', 'og:type').setAttribute('content', data.ogType || 'website');
   ensureMetaTag('property', 'og:url').setAttribute('content', canonicalUrl);
-  ensureMetaTag('property', 'og:site_name').setAttribute('content', 'Pabble AI');
+  ensureMetaTag('property', 'og:site_name').setAttribute('content', 'PEBELai');
   ensureMetaTag('property', 'og:image').setAttribute('content', `${origin}/og-cover.svg`);
   ensureMetaTag('name', 'twitter:card').setAttribute('content', 'summary_large_image');
   ensureMetaTag('name', 'twitter:title').setAttribute('content', data.title);
@@ -284,8 +284,7 @@ function Navbar({
     <nav className="navbar">
       <div className="navbar-inner">
         <a href="/" className="navbar-logo" onClick={e => { e.preventDefault(); onLogoClick(); }}>
-          <div className="navbar-logo-icon">P</div>
-          <div className="navbar-logo-text">Pabble <span>AI</span></div>
+          <img src="/pebel-logo.jpg" alt="PEBELai" className="navbar-logo-img" />
         </a>
         <div className="navbar-actions">
           {hasResume && (
@@ -327,7 +326,7 @@ function Navbar({
 function SiteFooter() {
   return (
     <footer className="site-footer">
-      <span>Developed by <strong>Dune AI</strong></span>
+      <span>Developed by <strong>DuneAI</strong></span>
     </footer>
   );
 }
@@ -475,7 +474,7 @@ function LandingPage({ onOpenResumeFlow, onOpenTrackerPreview }) {
         <div className="landing-copy-card">
           <h2 id="platform-overview-heading">AI resume builder, ATS resume checker, and job application tracker</h2>
           <p>
-            Pabble AI is built for job seekers who want ATS-friendly resumes, professional resume templates,
+            PEBELai is built for job seekers who want ATS-friendly resumes, professional resume templates,
             resume-to-job-description matching, and a cleaner workflow for applications, interviews, and follow-ups.
             The platform supports freshers, software engineers, analysts, designers, and experienced professionals
             looking to create stronger resumes and track every opportunity from one place.
@@ -524,8 +523,7 @@ function LoginPage({ onLogin }) {
     <div className="login-page">
       <div className="login-left">
         <div className="login-brand">
-          <div className="navbar-logo-icon" style={{ width: 42, height: 42, fontSize: 20 }}>P</div>
-          <span className="login-brand-text">Pabble AI</span>
+          <img src="/pebel-logo.jpg" alt="PEBELai" style={{ height: 48, width: 'auto', marginBottom: 24 }} />
         </div>
         <h1 className="login-headline">Professional results.<br/>Zero friction.</h1>
         <p className="login-subtext">Join 5,000+ professionals building ATS-optimized resumes that actually get read.</p>
@@ -694,7 +692,7 @@ function ResumeWorkflowPage({ onContinueToTemplates, onOpenTracker }) {
       <section className="workflow-hero-panel">
         <div className="workflow-hero-copy">
           <div className="landing-badge">Resume Workflow</div>
-          <h1>See how Pabble AI works before you choose a template</h1>
+          <h1>See how PEBELai works before you choose a template</h1>
           <p>
             We separate the workflow from the editor so users understand what happens first,
             what gets optimized automatically, and how the tracker supports the resume after it is built.
@@ -2767,16 +2765,16 @@ function App() {
       '@graph': [
         {
           '@type': 'Organization',
-          name: 'Pabble AI',
+          name: 'PEBELai',
           url: origin,
-          description: 'Pabble AI is a resume builder, ATS checker, and application tracking platform for job seekers.',
+          description: 'PEBELai is a resume builder, ATS checker, and application tracking platform for job seekers.',
         },
       ],
     };
 
     let seoData = {
-      title: 'Pabble AI | AI Resume Builder, ATS Resume Checker, and Templates',
-      description: 'Build ATS-friendly resumes, compare resumes to job descriptions, choose professional templates, and manage applications with Pabble AI.',
+      title: 'PEBELai | AI Resume Builder, ATS Resume Checker, and Templates',
+      description: 'Build ATS-friendly resumes, compare resumes to job descriptions, choose professional templates, and manage applications with PEBELai.',
       url: origin,
       robots: 'index,follow',
       ogType: 'website',
@@ -2786,13 +2784,13 @@ function App() {
           ...baseSchema['@graph'],
           {
             '@type': 'WebSite',
-            name: 'Pabble AI',
+            name: 'PEBELai',
             url: origin,
             description: 'AI resume builder with ATS scoring, LaTeX templates, and job application tracking.',
           },
           {
             '@type': 'SoftwareApplication',
-            name: 'Pabble AI',
+            name: 'PEBELai',
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
             url: origin,
@@ -2806,8 +2804,8 @@ function App() {
 
     if (view === 'workflow') {
       seoData = {
-        title: 'Pabble AI Workflow | Resume Builder and ATS Optimization Flow',
-        description: 'Understand how Pabble AI combines resume building, ATS optimization, and application tracking before you choose a template.',
+        title: 'PEBELai Workflow | Resume Builder and ATS Optimization Flow',
+        description: 'Understand how PEBELai combines resume building, ATS optimization, and application tracking before you choose a template.',
         url: origin,
         robots: 'index,follow',
         ogType: 'website',
@@ -2817,16 +2815,16 @@ function App() {
             ...baseSchema['@graph'],
             {
               '@type': 'WebPage',
-              name: 'Pabble AI Resume Workflow',
+              name: 'PEBELai Resume Workflow',
               url: origin,
-              description: 'The guided workflow for using Pabble AI resume builder, ATS scoring, and application tracker.',
+              description: 'The guided workflow for using PEBELai resume builder, ATS scoring, and application tracker.',
             },
           ],
         },
       };
     } else if (view === 'gallery') {
       seoData = {
-        title: 'Pabble AI Templates | Professional ATS-Friendly Resume Templates',
+        title: 'PEBELai Templates | Professional ATS-Friendly Resume Templates',
         description: 'Browse professional LaTeX resume templates for software engineers, analysts, freshers, and experienced job seekers.',
         url: origin,
         robots: 'index,follow',
@@ -2837,7 +2835,7 @@ function App() {
             ...baseSchema['@graph'],
             {
               '@type': 'CollectionPage',
-              name: 'Pabble AI Resume Templates',
+              name: 'PEBELai Resume Templates',
               url: origin,
               description: 'A collection of professional ATS-friendly resume templates.',
             },
@@ -2846,7 +2844,7 @@ function App() {
       };
     } else if (view === 'builder') {
       seoData = {
-        title: `Pabble AI Builder | ${selectedTemplateConfig?.name || 'Resume'} Resume Builder`,
+        title: `PEBELai Builder | ${selectedTemplateConfig?.name || 'Resume'} Resume Builder`,
         description: `Create and optimize your ${selectedTemplateConfig?.name || 'professional'} resume with ATS scoring, job description matching, and export tools.`,
         url: origin,
         robots: 'noindex,nofollow',
@@ -2857,7 +2855,7 @@ function App() {
             ...baseSchema['@graph'],
             {
               '@type': 'WebApplication',
-              name: 'Pabble AI Resume Builder',
+              name: 'PEBELai Resume Builder',
               applicationCategory: 'BusinessApplication',
               operatingSystem: 'Web',
               url: origin,
@@ -2867,8 +2865,8 @@ function App() {
       };
     } else if (view === 'tracker') {
       seoData = {
-        title: 'Pabble AI Tracker | Application Tracker, Follow-Ups, and Interview Notes',
-        description: 'Track job applications, interview rounds, deadlines, follow-up reminders, and weekly job search performance in Pabble AI.',
+        title: 'PEBELai Tracker | Application Tracker, Follow-Ups, and Interview Notes',
+        description: 'Track job applications, interview rounds, deadlines, follow-up reminders, and weekly job search performance in PEBELai.',
         url: origin,
         robots: 'noindex,nofollow',
         ogType: 'website',
@@ -2878,7 +2876,7 @@ function App() {
             ...baseSchema['@graph'],
             {
               '@type': 'WebPage',
-              name: 'Pabble AI Application Tracker',
+              name: 'PEBELai Application Tracker',
               url: origin,
               description: 'Track applications, interviews, reminders, and deadlines.',
             },
@@ -2887,8 +2885,8 @@ function App() {
       };
     } else if (view === 'login' || view === 'profile') {
       seoData = {
-        title: 'Pabble AI | Resume Platform',
-        description: 'Pabble AI helps you build ATS-friendly resumes and organize your job search.',
+        title: 'PEBELai | Resume Platform',
+        description: 'PEBELai helps you build ATS-friendly resumes and organize your job search.',
         url: origin,
         robots: 'noindex,nofollow',
         ogType: 'website',

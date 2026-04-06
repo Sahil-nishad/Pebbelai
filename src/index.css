@@ -131,33 +131,14 @@ body {
 .navbar-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
-  color: var(--black);
+  flex-shrink: 0;
 }
 
-.navbar-logo-icon {
-  width: 28px;
-  height: 28px;
-  background: var(--black);
-  color: var(--white);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.navbar-logo-text {
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: -0.02em;
-}
-
-.navbar-logo-text span {
-  font-weight: 400;
-  color: var(--gray-400);
+.navbar-logo-img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
 }
 
 .navbar-actions {
@@ -1195,6 +1176,10 @@ body {
   -webkit-backdrop-filter: blur(14px);
   box-shadow: var(--shadow-sm);
 }
+
+  .navbar-logo-img {
+    height: 34px;
+  }
 
 .gallery-hero-card span {
   display: block;
