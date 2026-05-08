@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Sparkles, Send, Bot } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -140,10 +141,35 @@ export default function CareersOutreachPage() {
           </>
         )}
 
-        <Button onClick={handleGenerate} disabled={generating || !resumeId || !postId} className="w-full rounded-xl">
+        <Button 
+          onClick={() => {
+            if (!resumeId || !postId) {
+              toast.error(
+                !resumeId 
+                  ? 'Please upload a resume in the "Resume" tab first.' 
+                  : 'Please search for recruiters in the "Recruiters" tab first.'
+              )
+              return
+            }
+            handleGenerate()
+          }} 
+          disabled={generating} 
+          className="w-full rounded-xl"
+        >
           <Bot className="h-4 w-4 mr-2" />
           {generating ? 'Generating…' : 'Generate AI cold email'}
         </Button>
+
+        {!resumes.length && (
+          <p className="mt-2 text-xs text-amber-600 font-medium">
+            ⚠️ No resumes found. <Link href="/careers/resume" className="underline">Go to Resume tab</Link> to upload one.
+          </p>
+        )}
+        {!recruiters.length && (
+          <p className="mt-1 text-xs text-amber-600 font-medium">
+            ⚠️ No recruiter posts found. <Link href="/careers/recruiters" className="underline">Go to Recruiters tab</Link> to find posts.
+          </p>
+        )}
 
         {draft && (
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 space-y-3">
@@ -199,8 +225,14 @@ export default function CareersOutreachPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={handleSend}
-            disabled={sending || !subject || !body}
+            onClick={() => {
+              if (!subject || !body) {
+                toast.error('Please generate or write a subject and body first.')
+                return
+              }
+              handleSend()
+            }}
+            disabled={sending}
             className="rounded-xl px-5"
           >
             <Send className="h-4 w-4 mr-2" />

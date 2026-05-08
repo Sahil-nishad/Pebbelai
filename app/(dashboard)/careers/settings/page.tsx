@@ -44,13 +44,17 @@ export default function CareersSettingsPage() {
 
   async function handleGmailConnect() {
     setConnecting(true)
+    const t = toast.loading('Connecting to Google...')
     try {
       const url = await initiateGmailOAuth()
       if (url) {
+        toast.success('Redirecting to Gmail OAuth...', { id: t })
         window.location.href = url
+      } else {
+        toast.error('Could not obtain auth URL.', { id: t })
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not start Gmail OAuth flow.')
+      toast.error(err instanceof Error ? err.message : 'Could not start Gmail OAuth flow.', { id: t })
     } finally {
       setConnecting(false)
     }

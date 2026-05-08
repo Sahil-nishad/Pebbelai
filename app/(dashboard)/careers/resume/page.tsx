@@ -70,7 +70,10 @@ export default function CareersResumePage() {
           <p className="text-sm text-slate-500">Securely upload PDF or DOCX files for skills extraction and outreach personalization.</p>
         </div>
 
-        <label className="flex min-h-52 cursor-pointer flex-col items-center justify-center gap-3 rounded-[28px] border border-dashed border-emerald-200 bg-[linear-gradient(180deg,rgba(236,253,245,0.9),rgba(255,255,255,0.95))] px-6 text-center transition hover:border-emerald-400 hover:bg-emerald-50/50">
+        <label 
+          onClick={() => fileInputRef.current?.click()}
+          className="flex min-h-52 cursor-pointer flex-col items-center justify-center gap-3 rounded-[28px] border border-dashed border-emerald-200 bg-[linear-gradient(180deg,rgba(236,253,245,0.9),rgba(255,255,255,0.95))] px-6 text-center transition hover:border-emerald-400 hover:bg-emerald-50/50"
+        >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
             {uploading ? (
               <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
@@ -93,7 +96,12 @@ export default function CareersResumePage() {
         </label>
 
         <Button
-          onClick={() => refresh().catch(() => toast.error('Refresh failed.'))}
+          onClick={() => {
+            const t = toast.loading('Refreshing resume list...')
+            refresh()
+              .then(() => toast.success('List updated.', { id: t }))
+              .catch(() => toast.error('Refresh failed.', { id: t }))
+          }}
           variant="secondary"
           className="w-full rounded-xl"
         >
