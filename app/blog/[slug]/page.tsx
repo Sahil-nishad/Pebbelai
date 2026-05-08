@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+
 import { PublicNav } from '@/components/public-nav'
 import { getAllPosts, getPostBySlug } from '@/lib/blog-data'
 
@@ -106,7 +107,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <PublicNav />
 
-      <article className="max-w-3xl mx-auto px-6 py-16">
+      <article className="mx-auto max-w-3xl px-6 py-16">
         <nav aria-label="Breadcrumb" className="mb-6 text-[12px] text-slate-400">
           <Link href="/" className="hover:text-[#0A6A47]">Home</Link>
           <span className="mx-2">/</span>
@@ -115,16 +116,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <span className="text-slate-600">{post.category}</span>
         </nav>
 
-        <p className="text-[12px] font-bold tracking-widest text-emerald-700 uppercase mb-3">{post.category}</p>
-        <h1 className="text-[36px] sm:text-[44px] font-bold text-slate-900 leading-[1.15] tracking-tight mb-4">
+        <p className="mb-3 text-[12px] font-bold uppercase tracking-widest text-emerald-700">{post.category}</p>
+        <h1 className="mb-4 text-[36px] font-bold leading-[1.15] tracking-tight text-slate-900 sm:text-[44px]">
           {post.title}
         </h1>
-        <p className="text-[17px] text-slate-500 leading-relaxed mb-6">
-          {post.description}
-        </p>
+        <p className="mb-6 text-[17px] leading-relaxed text-slate-500">{post.description}</p>
 
-        <div className="flex items-center gap-3 text-[13px] text-slate-500 mb-10 pb-6 border-b border-slate-100">
-          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-[14px] font-bold text-[#0A6A47]">
+        <div className="mb-10 flex items-center gap-3 border-b border-slate-100 pb-6 text-[13px] text-slate-500">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-[14px] font-bold text-[#0A6A47]">
             {post.author.charAt(0)}
           </div>
           <div>
@@ -140,57 +139,57 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </div>
 
         {post.tldr && (
-          <div className="mb-10 p-5 rounded-xl bg-emerald-50 border border-emerald-100">
-            <p className="text-[11px] font-bold tracking-widest text-emerald-700 uppercase mb-2">TL;DR</p>
-            <p className="text-[14px] text-slate-700 leading-relaxed">{post.tldr}</p>
+          <div className="mb-10 rounded-xl border border-emerald-100 bg-emerald-50 p-5">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700">TL;DR</p>
+            <p className="text-[14px] leading-relaxed text-slate-700">{post.tldr}</p>
           </div>
         )}
 
         <div
-          className="prose-content text-[16px] text-slate-700 leading-[1.75]"
+          className="prose-content text-[16px] leading-[1.75] text-slate-700"
           dangerouslySetInnerHTML={{ __html: post.body }}
         />
 
         {post.faq && post.faq.length > 0 && (
-          <section className="mt-14 pt-10 border-t border-slate-100">
-            <h2 className="text-[28px] font-bold text-slate-900 mb-6 tracking-tight">Frequently asked questions</h2>
+          <section className="mt-14 border-t border-slate-100 pt-10">
+            <h2 className="mb-6 text-[28px] font-bold tracking-tight text-slate-900">Frequently asked questions</h2>
             <div className="space-y-5">
               {post.faq.map((f, i) => (
                 <div key={i} className="border-b border-slate-100 pb-5 last:border-0">
-                  <h3 className="text-[16px] font-bold text-slate-900 mb-2">{f.q}</h3>
-                  <p className="text-[14px] text-slate-600 leading-relaxed">{f.a}</p>
+                  <h3 className="mb-2 text-[16px] font-bold text-slate-900">{f.q}</h3>
+                  <p className="text-[14px] leading-relaxed text-slate-600">{f.a}</p>
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        <section className="mt-14 p-7 rounded-2xl bg-[#0A6A47] text-white">
-          <h2 className="text-[22px] font-bold mb-2">Track every job — free, forever.</h2>
-          <p className="text-[14px] text-white/75 mb-5 max-w-md">
-            PebelAI auto-saves jobs from LinkedIn, Naukri & Indeed, sends follow-up reminders, and includes a free AI interview coach.
+        <section className="mt-14 rounded-2xl bg-[#0A6A47] p-7 text-white">
+          <h2 className="mb-2 text-[22px] font-bold">Track every job free, forever.</h2>
+          <p className="mb-5 max-w-md text-[14px] text-white/75">
+            PebelAI auto-saves jobs from LinkedIn, Naukri and Indeed, sends follow-up reminders, and includes a free AI interview coach.
           </p>
           <Link
             href="/signup"
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-[#0A6A47] text-[14px] font-bold hover:bg-emerald-50 transition-colors"
+            className="inline-flex items-center rounded-lg bg-white px-6 py-3 text-[14px] font-bold text-[#0A6A47] transition-colors hover:bg-emerald-50"
           >
-            Get started — it's free
+            Get started free
           </Link>
         </section>
 
         {related.length > 0 && (
-          <section className="mt-14 pt-10 border-t border-slate-100">
-            <h2 className="text-[20px] font-bold text-slate-900 mb-6 tracking-tight">Keep reading</h2>
-            <div className="grid sm:grid-cols-2 gap-5">
+          <section className="mt-14 border-t border-slate-100 pt-10">
+            <h2 className="mb-6 text-[20px] font-bold tracking-tight text-slate-900">Keep reading</h2>
+            <div className="grid gap-5 sm:grid-cols-2">
               {related.map((r) => (
                 <Link
                   key={r.slug}
                   href={`/blog/${r.slug}`}
-                  className="block p-5 rounded-xl border border-slate-100 hover:border-[#0A6A47]/30 transition-all"
+                  className="block rounded-xl border border-slate-100 p-5 transition-all hover:border-[#0A6A47]/30"
                 >
-                  <p className="text-[11px] font-semibold tracking-wide uppercase text-emerald-700 mb-2">{r.category}</p>
-                  <h3 className="text-[15px] font-bold text-slate-900 leading-snug mb-2">{r.title}</h3>
-                  <p className="text-[12px] text-slate-500 leading-relaxed">{r.description}</p>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">{r.category}</p>
+                  <h3 className="mb-2 text-[15px] font-bold leading-snug text-slate-900">{r.title}</h3>
+                  <p className="text-[12px] leading-relaxed text-slate-500">{r.description}</p>
                 </Link>
               ))}
             </div>
@@ -198,8 +197,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         )}
       </article>
 
-      <footer className="border-t border-slate-100 mt-12">
-        <div className="max-w-3xl mx-auto px-6 py-10 text-center text-[12px] text-slate-400">
+      <footer className="mt-12 border-t border-slate-100">
+        <div className="mx-auto max-w-3xl px-6 py-10 text-center text-[12px] text-slate-400">
           © {new Date().getFullYear()} PebelAI · <Link href="/privacy" className="hover:text-slate-600">Privacy</Link> · <Link href="/terms" className="hover:text-slate-600">Terms</Link>
         </div>
       </footer>

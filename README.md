@@ -1,54 +1,166 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PebelAI Careers MVP
 
-## Gmail SMTP Email Setup
+`PebelAI Careers` is a production-oriented recruiter outreach module added to the existing PebelAI platform. It reuses the current NextAuth session and dashboard shell, adds a dedicated FastAPI careers backend, and covers the Phase 1 MVP flow:
 
-PebelAI uses Gmail SMTP for reminder, application, and test emails.
+- resume upload and parsing
+- recruiter post discovery with safe Playwright automation
+- recruiter email extraction and profile matching
+- AI-generated cold emails with manual approval
+- Gmail sending with resume attachment
+- application and reply tracking analytics
 
-Add these environment variables to your `.env.local`:
+## Architecture
+
+Frontend:
+- Next.js App Router
+- Tailwind CSS
+- existing UI primitives in `components/ui`
+- authenticated proxy routes under `app/api/careers`
+
+Backend:
+- FastAPI
+- SQLAlchemy + Alembic
+- PostgreSQL
+- Redis + Celery
+- Playwright
+- OpenAI API
+- Gmail API
+
+## Folder Structure
+
+```text
+app/
+  (dashboard)/careers/
+  api/careers/[...path]/route.ts
+components/
+  careers/
+services/
+  careers.ts
+types/
+  careers.ts
+backend/
+  app/
+    agents/
+    models/
+    prompts/
+    routes/
+    schemas/
+    services/
+    utils/
+    workers/
+  alembic/
+  requirements.txt
+  Dockerfile
+docker-compose.yml
+```
+
+## Environment Setup
+
+Frontend `.env.local`:
 
 ```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+CAREERS_API_URL=http://localhost:8000
+CAREERS_INTERNAL_API_KEY=change-me
+NEXT_PUBLIC_SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+NEXTAUTH_SECRET=...
+```
+
+Backend `backend/.env`:
+
+```env
+DATABASE_URL=sqlite:///./storage/careers.db
+REDIS_URL=redis://localhost:6379/0
+CAREERS_INTERNAL_API_KEY=change-me
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4.1-mini
+FRONTEND_APP_URL=http://localhost:3000
+GMAIL_CLIENT_ID=...
+GMAIL_CLIENT_SECRET=...
+GMAIL_REDIRECT_URI=http://localhost:8000/auth/gmail/callback
+GMAIL_REFRESH_TOKEN=...
+GMAIL_SENDER_EMAIL=...
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=pebel439@gmail.com
-SMTP_PASS=your_gmail_app_password
-SMTP_FROM_EMAIL="PebelAI <pebel439@gmail.com>"
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+SMTP_USER=...
+SMTP_PASS=...
+SMTP_FROM_EMAIL=...
 ```
 
-Use a Gmail app password for `SMTP_PASS` and make sure Gmail 2-step verification is enabled.
-Set `SMTP_FROM_EMAIL` to the same Gmail address if you want emails to appear as sent from `pebel439@gmail.com`.
+## Local Development
 
-## Getting Started
+1. Install frontend dependencies with `npm install`.
+2. Install backend dependencies with `pip install -r backend/requirements.txt`.
+3. Install Playwright Chromium with `python -m playwright install chromium`.
+4. Start the backend with `uvicorn app.main:app --reload --port 8000` from `backend/`.
+5. Start the frontend with `npm run dev`.
 
-First, run the development server:
+Local note:
+- the backend defaults to SQLite and auto-creates careers tables on startup, so the MVP works locally without Postgres or Redis
+- for production, point `DATABASE_URL` at PostgreSQL and run Alembic/Supabase migrations
+
+## Docker
+
+Run the full stack:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Services started:
+- `frontend` on `http://localhost:3000`
+- `backend` on `http://localhost:8000`
+- `postgres` on `localhost:5432`
+- `redis` on `localhost:6379`
+- `worker` for background recruiter refresh tasks
+- `beat` for scheduled Celery tasks (recruiter feed refreshed every 6 hours)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API Surface
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Frontend-facing routes:
+- `GET  /api/careers/analytics`
+- `GET  /api/careers/applications`
+- `PATCH /api/careers/applications/{id}/reply` — mark reply status (pending / replied / rejected / no_response)
+- `GET  /api/careers/recruiters`
+- `POST /api/careers/recruiters/search`
+- `GET  /api/careers/resume`
+- `POST /api/careers/resume`
+- `POST /api/careers/outreach/generate`
+- `POST /api/careers/outreach/send`
+- `GET  /api/careers/followup` — list follow-ups (optional `?application_id=`)
+- `POST /api/careers/followup/send` — send a follow-up email
+- `GET  /api/careers/gmail/status` — check Gmail OAuth connection
+- `POST /api/careers/gmail/initiate` — start Gmail OAuth flow
+- `GET  /api/careers/gmail/callback` — OAuth callback (server-side)
 
-## Learn More
+Backend routes are exposed under `http://localhost:8000/api/careers/*` and trust only proxied requests signed with `CAREERS_INTERNAL_API_KEY`.
 
-To learn more about Next.js, take a look at the following resources:
+## Security Notes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Existing platform auth is reused through the Next.js proxy layer.
+- Resume uploads are size-limited and extension-validated.
+- Careers endpoints enforce per-user rate limits.
+- Gmail sending remains manual approval only.
+- Recruiter search uses low-volume Playwright automation with delays and result caps.
+- SMTP fallback is available when Gmail OAuth is not configured.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+Frontend:
+- deploy the Next.js app to Vercel or your current platform
+- set `CAREERS_API_URL` to the deployed FastAPI base URL
+- keep `CAREERS_INTERNAL_API_KEY` identical on both services
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Backend:
+- deploy the `backend/` service to Railway, Render, Fly.io, ECS, or Kubernetes
+- provision PostgreSQL and Redis
+- run `alembic upgrade head` during release
+- run a separate Celery worker process
+- persist `backend/storage/resumes` to object storage or a mounted volume for production
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+
+- The existing auth system was intentionally reused; no duplicate auth stack was added.
+- Gmail OAuth storage is scaffolded through `gmail_connections`, while send falls back to SMTP when Gmail OAuth is not configured.
+- The recruiter search service is intentionally conservative to avoid aggressive scraping behavior.

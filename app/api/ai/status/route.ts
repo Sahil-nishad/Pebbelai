@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { groq, MODEL } from '@/lib/groq'
+import { getGroqClient, hasGroqKey, MODEL } from '@/lib/groq'
 import { requireAuth, unauthorized } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (!auth) return unauthorized()
 
-  if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'your_groq_api_key') {
+  if (!hasGroqKey()) {
     return NextResponse.json({ connected: false, reason: 'No API key' }, { status: 503 })
   }
 
   try {
+    const groq = getGroqClient()
     await groq.chat.completions.create({
       model: MODEL,
       messages: [{ role: 'user', content: 'ping' }],

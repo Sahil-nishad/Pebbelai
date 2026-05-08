@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, unauthorized } from '@/lib/auth'
-import { groq, MODEL } from '@/lib/groq'
+import { getGroqClient, hasGroqKey, MODEL } from '@/lib/groq'
 import { getClientIp, rateLimit, readJsonObject } from '@/lib/api-validation'
 
 export async function POST(req: NextRequest) {
@@ -38,7 +38,12 @@ Return ONLY a valid JSON array with no extra text:
 ]
 Ensure exactly 10 items.`
 
+  if (!hasGroqKey()) {
+    return NextResponse.json({ error: 'AI service is not configured.' }, { status: 503 })
+  }
+
   try {
+    const groq = getGroqClient()
     const response = await groq.chat.completions.create({
       model: MODEL,
       messages: [{ role: 'user', content: prompt }],
