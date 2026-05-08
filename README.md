@@ -6,14 +6,7 @@ PebelAI uses Gmail SMTP for reminder, application, and test emails.
 
 Add these environment variables to your `.env.local`:
 
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=pebel439@gmail.com
-SMTP_PASS=your_gmail_app_password
-SMTP_FROM_EMAIL="PebelAI <pebel439@gmail.com>"
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+
 
 Use a Gmail app password for `SMTP_PASS` and make sure Gmail 2-step verification is enabled.
 Set `SMTP_FROM_EMAIL` to the same Gmail address if you want emails to appear as sent from `pebel439@gmail.com`.
