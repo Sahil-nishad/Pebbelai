@@ -13,6 +13,7 @@ import type {
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ error: 'Request failed.' }))
+    console.error(`[Careers Service] ${response.status} Error:`, payload)
     throw new Error(payload.detail || payload.error || 'Request failed.')
   }
   return response.json() as Promise<T>

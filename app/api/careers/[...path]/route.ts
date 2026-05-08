@@ -5,10 +5,16 @@ import { requireAuth, unauthorized } from '@/lib/auth'
 const API_BASE = process.env.CAREERS_API_URL || 'http://localhost:8000'
 
 async function proxy(request: NextRequest, params: { path: string[] }) {
+  console.log(`[Careers Proxy] ${request.method} ${params.path.join('/')}`)
   const auth = await requireAuth(request)
-  if (!auth) return unauthorized()
+  if (!auth) {
+    console.warn('[Careers Proxy] Unauthorized request')
+    return unauthorized()
+  }
 
   const target = `${API_BASE}/api/careers/${params.path.join('/')}${request.nextUrl.search}`
+  console.log(`[Careers Proxy] Forwarding to: ${target}`)
+  
   const headers = new Headers()
   headers.set('x-pebel-user-id', auth.user.id)
   headers.set('x-pebel-user-email', auth.user.email)
@@ -26,19 +32,26 @@ async function proxy(request: NextRequest, params: { path: string[] }) {
     }
   }
 
-  const response = await fetch(target, {
-    method: request.method,
-    headers,
-    body,
-  })
+  try {
+    const response = await fetch(target, {
+      method: request.method,
+      headers,
+      body,
+    })
 
-  const text = await response.text()
-  return new NextResponse(text, {
-    status: response.status,
-    headers: {
-      'content-type': response.headers.get('content-type') || 'application/json',
-    },
-  })
+    const text = await response.text()
+    console.log(`[Careers Proxy] Backend status: ${response.status}`)
+    
+    return new NextResponse(text, {
+      status: response.status,
+      headers: {
+        'content-type': response.headers.get('content-type') || 'application/json',
+      },
+    })
+  } catch (err) {
+    console.error('[Careers Proxy] Fetch error:', err)
+    return NextResponse.json({ error: 'Failed to connect to careers service.' }, { status: 502 })
+  }
 }
 
 export async function GET(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {

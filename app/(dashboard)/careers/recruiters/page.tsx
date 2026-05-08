@@ -39,7 +39,9 @@ export default function CareersRecruitersPage() {
   useEffect(() => {
     getRecruiterFeed()
       .then(setItems)
-      .catch(() => {})
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to load feed.')
+      })
       .finally(() => setLoading(false))
   }, [])
 
