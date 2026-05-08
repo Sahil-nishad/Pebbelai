@@ -7,12 +7,13 @@ import type {
   CareerResume,
   GeneratedOutreach,
   RecruiterFeedItem,
+  CareerFollowUp,
 } from '@/types/careers'
 
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ error: 'Request failed.' }))
-    throw new Error(payload.error || 'Request failed.')
+    throw new Error(payload.detail || payload.error || 'Request failed.')
   }
   return response.json() as Promise<T>
 }
@@ -23,6 +24,15 @@ export async function getCareerAnalytics() {
 
 export async function getCareerApplications() {
   return parseJson<CareerApplication[]>(await authFetch('/api/careers/applications'))
+}
+
+export async function patchApplicationReplyStatus(id: string, reply_status: string) {
+  return parseJson<CareerApplication>(
+    await authFetch(`/api/careers/applications/${id}/reply`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reply_status }),
+    })
+  )
 }
 
 export async function getRecruiterFeed() {
@@ -53,7 +63,11 @@ export async function uploadResume(file: File) {
   return parseJson<CareerResume>(response)
 }
 
-export async function generateOutreachEmail(payload: { recruiter_post_id: string; resume_id: string; custom_notes?: string }) {
+export async function generateOutreachEmail(payload: {
+  recruiter_post_id: string
+  resume_id: string
+  custom_notes?: string
+}) {
   return parseJson<GeneratedOutreach>(
     await authFetch('/api/careers/outreach/generate', {
       method: 'POST',
@@ -76,3 +90,22 @@ export async function sendOutreachEmail(payload: {
   )
 }
 
+export async function sendFollowUp(payload: {
+  application_id: string
+  subject: string
+  body: string
+}) {
+  return parseJson<CareerFollowUp>(
+    await authFetch('/api/careers/followup/send', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  )
+}
+
+export async function getFollowUps(application_id?: string) {
+  const url = application_id
+    ? `/api/careers/followup?application_id=${encodeURIComponent(application_id)}`
+    : '/api/careers/followup'
+  return parseJson<CareerFollowUp[]>(await authFetch(url))
+}

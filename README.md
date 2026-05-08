@@ -114,18 +114,25 @@ Services started:
 - `postgres` on `localhost:5432`
 - `redis` on `localhost:6379`
 - `worker` for background recruiter refresh tasks
+- `beat` for scheduled Celery tasks (recruiter feed refreshed every 6 hours)
 
 ## API Surface
 
 Frontend-facing routes:
-- `GET /api/careers/analytics`
-- `GET /api/careers/applications`
-- `GET /api/careers/recruiters`
+- `GET  /api/careers/analytics`
+- `GET  /api/careers/applications`
+- `PATCH /api/careers/applications/{id}/reply` — mark reply status (pending / replied / rejected / no_response)
+- `GET  /api/careers/recruiters`
 - `POST /api/careers/recruiters/search`
-- `GET /api/careers/resume`
+- `GET  /api/careers/resume`
 - `POST /api/careers/resume`
 - `POST /api/careers/outreach/generate`
 - `POST /api/careers/outreach/send`
+- `GET  /api/careers/followup` — list follow-ups (optional `?application_id=`)
+- `POST /api/careers/followup/send` — send a follow-up email
+- `GET  /api/careers/gmail/status` — check Gmail OAuth connection
+- `POST /api/careers/gmail/initiate` — start Gmail OAuth flow
+- `GET  /api/careers/gmail/callback` — OAuth callback (server-side)
 
 Backend routes are exposed under `http://localhost:8000/api/careers/*` and trust only proxied requests signed with `CAREERS_INTERNAL_API_KEY`.
 

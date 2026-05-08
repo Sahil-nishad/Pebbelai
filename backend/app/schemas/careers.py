@@ -75,9 +75,44 @@ class ApplicationRead(BaseModel):
     created_at: datetime
 
 
+class PatchReplyStatus(BaseModel):
+    """Request body for PATCH /applications/{id}/reply"""
+    reply_status: str = Field(
+        description="One of: pending, replied, rejected, no_response",
+        pattern=r"^(pending|replied|rejected|no_response)$",
+    )
+
+
 class DashboardAnalytics(BaseModel):
     total_applications: int
     pending_replies: int
     recruiter_responses: int
     response_rate: float
     recent_outreach: list[ApplicationRead]
+
+
+class FollowUpRead(BaseModel):
+    id: str
+    application_id: str
+    subject: str
+    body: str
+    sent_status: str
+    gmail_message_id: str | None
+    created_at: datetime
+
+
+class SendFollowUpRequest(BaseModel):
+    application_id: str
+    subject: str = Field(min_length=3, max_length=255)
+    body: str = Field(min_length=10, max_length=5000)
+
+
+class GmailConnectionRead(BaseModel):
+    id: str
+    email: str
+    is_active: bool
+    created_at: datetime
+
+
+class GmailOAuthInitiate(BaseModel):
+    auth_url: str

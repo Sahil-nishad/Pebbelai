@@ -40,7 +40,7 @@ export interface CareerApplication {
   missing_skills: string[]
   match_summary?: string | null
   sent_status: string
-  reply_status: string
+  reply_status: 'pending' | 'replied' | 'rejected' | 'no_response' | string
   created_at: string
 }
 
@@ -58,3 +58,19 @@ export interface GeneratedOutreach {
   match: CareerMatch
 }
 
+export interface CareerFollowUp {
+  id: string
+  application_id: string
+  subject: string
+  body: string
+  sent_status: string
+  gmail_message_id: string | null
+  created_at: string
+}
+
+export interface GmailConnectionStatus {
+  id: string
+  email: string
+  is_active: boolean
+  created_at: string
+}

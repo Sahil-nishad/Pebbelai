@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BriefcaseBusiness, FileText, Mail, Radar } from 'lucide-react'
+import { BriefcaseBusiness, FileText, Mail, Radar, BarChart3, ListChecks, Settings2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -10,7 +10,10 @@ const items = [
   { href: '/careers/dashboard', label: 'Dashboard', icon: BriefcaseBusiness },
   { href: '/careers/recruiters', label: 'Recruiters', icon: Radar },
   { href: '/careers/outreach', label: 'Outreach', icon: Mail },
+  { href: '/careers/applications', label: 'Applications', icon: ListChecks },
   { href: '/careers/resume', label: 'Resume', icon: FileText },
+  { href: '/careers/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/careers/settings', label: 'Settings', icon: Settings2 },
 ]
 
 export function CareersNav() {
@@ -19,7 +22,7 @@ export function CareersNav() {
   return (
     <div className="mb-6 flex flex-wrap gap-2">
       {items.map((item) => {
-        const active = pathname === item.href
+        const active = pathname === item.href || pathname.startsWith(item.href + '/')
         return (
           <Link
             key={item.href}
@@ -39,4 +42,3 @@ export function CareersNav() {
     </div>
   )
 }
-

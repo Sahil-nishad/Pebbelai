@@ -78,6 +78,7 @@ class Application(Base):
     recruiter: Mapped[Recruiter | None] = relationship(back_populates="applications")
     recruiter_post: Mapped[RecruiterPost | None] = relationship(back_populates="applications")
     resume: Mapped[Resume | None] = relationship(back_populates="applications")
+    followups: Mapped[list["FollowUp"]] = relationship(back_populates="application")
 
 
 class GmailConnection(Base):
@@ -93,3 +94,19 @@ class GmailConnection(Base):
     scopes: Mapped[list[str]] = mapped_column(JSON, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class FollowUp(Base):
+    """Tracks follow-up emails sent after an application has no reply."""
+    __tablename__ = "followups"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String(255), index=True)
+    application_id: Mapped[str] = mapped_column(String(36), ForeignKey("applications.id", ondelete="CASCADE"))
+    subject: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str] = mapped_column(Text)
+    sent_status: Mapped[str] = mapped_column(String(50), default="pending")
+    gmail_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    application: Mapped[Application] = relationship(back_populates="followups")

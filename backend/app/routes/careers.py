@@ -5,19 +5,25 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.deps import AuthenticatedUser, db_session, get_current_user
-from app.models.careers import Application, Recruiter, RecruiterPost, Resume
+from app.models.careers import Application, FollowUp, GmailConnection, Recruiter, RecruiterPost, Resume
 from app.schemas.careers import (
     ApplicationRead,
     DashboardAnalytics,
+    FollowUpRead,
     GenerateEmailRequest,
     GeneratedEmailResponse,
+    GmailConnectionRead,
+    GmailOAuthInitiate,
+    PatchReplyStatus,
     RecruiterFeedItem,
     RecruiterSearchRequest,
     ResumeRead,
     SendEmailRequest,
+    SendFollowUpRequest,
 )
 from app.services.application_tracking import ApplicationTrackingService
 from app.services.email_generator import EmailGeneratorService
+from app.services.followup_service import FollowUpService
 from app.services.gmail_service import GmailService
 from app.services.matching import MatchingService
 from app.services.recruiter_search import RecruiterSearchService
@@ -32,6 +38,7 @@ matching_service = MatchingService()
 email_generator = EmailGeneratorService()
 gmail_service = GmailService()
 tracking_service = ApplicationTrackingService()
+followup_service = FollowUpService()
 
 
 def serialize_resume(resume: Resume) -> ResumeRead:
@@ -41,6 +48,12 @@ def serialize_resume(resume: Resume) -> ResumeRead:
 def serialize_application(application: Application) -> ApplicationRead:
     return ApplicationRead.model_validate(application, from_attributes=True)
 
+
+def serialize_followup(followup: FollowUp) -> FollowUpRead:
+    return FollowUpRead.model_validate(followup, from_attributes=True)
+
+
+# ─── Resume endpoints ─────────────────────────────────────────────────────────
 
 @router.post("/resume", response_model=ResumeRead)
 async def upload_resume(
@@ -83,6 +96,8 @@ def list_resumes(
     resumes = list(db.scalars(select(Resume).where(Resume.user_id == user.id).order_by(Resume.created_at.desc())))
     return [serialize_resume(resume) for resume in resumes]
 
+
+# ─── Recruiter endpoints ──────────────────────────────────────────────────────
 
 @router.post("/recruiters/search", response_model=list[RecruiterFeedItem])
 async def search_recruiters(
@@ -180,6 +195,8 @@ def list_recruiters(
     return items
 
 
+# ─── Outreach endpoints ───────────────────────────────────────────────────────
+
 @router.post("/outreach/generate", response_model=GeneratedEmailResponse)
 def generate_outreach_email(
     payload: GenerateEmailRequest,
@@ -255,6 +272,8 @@ def send_outreach_email(
     return serialize_application(application)
 
 
+# ─── Applications endpoints ───────────────────────────────────────────────────
+
 @router.get("/applications", response_model=list[ApplicationRead])
 def get_applications(
     user: AuthenticatedUser = Depends(get_current_user),
@@ -264,6 +283,25 @@ def get_applications(
     return [serialize_application(application) for application in applications]
 
 
+@router.patch("/applications/{application_id}/reply", response_model=ApplicationRead)
+def mark_reply_status(
+    application_id: str,
+    payload: PatchReplyStatus,
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> ApplicationRead:
+    """Update the reply_status on an application (e.g. mark as 'replied' or 'rejected')."""
+    application = db.get(Application, application_id)
+    if not application or application.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    application.reply_status = payload.reply_status
+    db.commit()
+    db.refresh(application)
+    return serialize_application(application)
+
+
+# ─── Analytics endpoint ───────────────────────────────────────────────────────
+
 @router.get("/analytics", response_model=DashboardAnalytics)
 def dashboard_analytics(
     user: AuthenticatedUser = Depends(get_current_user),
@@ -272,3 +310,145 @@ def dashboard_analytics(
     analytics = tracking_service.analytics(db, user.id)
     analytics["recent_outreach"] = [serialize_application(item) for item in analytics["recent_outreach"]]
     return DashboardAnalytics(**analytics)
+
+
+# ─── Follow-up endpoints ──────────────────────────────────────────────────────
+
+@router.post("/followup/send", response_model=FollowUpRead)
+def send_followup(
+    payload: SendFollowUpRequest,
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> FollowUpRead:
+    enforce_rate_limit(f"followup:{user.id}", limit=20, window_seconds=86400)
+    followup = followup_service.send_followup(
+        db=db,
+        user_id=user.id,
+        application_id=payload.application_id,
+        subject=payload.subject,
+        body=payload.body,
+    )
+    return serialize_followup(followup)
+
+
+@router.get("/followup", response_model=list[FollowUpRead])
+def list_followups(
+    application_id: str | None = None,
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> list[FollowUpRead]:
+    followups = followup_service.list_followups(db, user.id, application_id)
+    return [serialize_followup(f) for f in followups]
+
+
+# ─── Gmail OAuth endpoints ────────────────────────────────────────────────────
+
+@router.get("/gmail/status", response_model=GmailConnectionRead | None)
+def gmail_status(
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> GmailConnectionRead | None:
+    """Return the user's active Gmail connection, if any."""
+    conn = db.scalar(
+        select(GmailConnection).where(
+            GmailConnection.user_id == user.id,
+            GmailConnection.is_active == True,  # noqa: E712
+        )
+    )
+    if not conn:
+        return None
+    return GmailConnectionRead.model_validate(conn, from_attributes=True)
+
+
+@router.post("/gmail/initiate", response_model=GmailOAuthInitiate)
+def gmail_oauth_initiate(
+    user: AuthenticatedUser = Depends(get_current_user),
+) -> GmailOAuthInitiate:
+    """Generate a Gmail OAuth authorization URL for the user."""
+    from app.config import get_settings
+
+    settings = get_settings()
+    if not settings.gmail_client_id or not settings.gmail_redirect_uri:
+        raise HTTPException(status_code=503, detail="Gmail OAuth is not configured on this server.")
+
+    from google_auth_oauthlib.flow import Flow  # type: ignore[import]
+
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": settings.gmail_client_id,
+                "client_secret": settings.gmail_client_secret,
+                "redirect_uris": [settings.gmail_redirect_uri],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
+        scopes=["https://www.googleapis.com/auth/gmail.send"],
+        redirect_uri=settings.gmail_redirect_uri,
+    )
+    auth_url, _ = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="consent",
+        state=user.id,
+    )
+    return GmailOAuthInitiate(auth_url=auth_url)
+
+
+@router.get("/gmail/callback")
+def gmail_oauth_callback(
+    code: str,
+    state: str,
+    db: Session = Depends(db_session),
+) -> dict[str, str]:
+    """Handle the OAuth callback and persist the refresh token."""
+    from app.config import get_settings
+
+    settings = get_settings()
+    if not settings.gmail_client_id or not settings.gmail_redirect_uri:
+        raise HTTPException(status_code=503, detail="Gmail OAuth is not configured.")
+
+    from google_auth_oauthlib.flow import Flow  # type: ignore[import]
+
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": settings.gmail_client_id,
+                "client_secret": settings.gmail_client_secret,
+                "redirect_uris": [settings.gmail_redirect_uri],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
+        scopes=["https://www.googleapis.com/auth/gmail.send"],
+        redirect_uri=settings.gmail_redirect_uri,
+    )
+    flow.fetch_token(code=code)
+    credentials = flow.credentials
+
+    # Resolve connected email
+    from googleapiclient.discovery import build  # type: ignore[import]
+
+    service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
+    profile = service.users().getProfile(userId="me").execute()
+    connected_email = profile.get("emailAddress", "unknown@gmail.com")
+
+    user_id = state
+    existing = db.scalar(select(GmailConnection).where(GmailConnection.user_id == user_id))
+    if existing:
+        existing.email = connected_email
+        existing.refresh_token = credentials.refresh_token or existing.refresh_token
+        existing.access_token = credentials.token
+        existing.is_active = True
+    else:
+        conn = GmailConnection(
+            user_id=user_id,
+            email=connected_email,
+            refresh_token=credentials.refresh_token or "",
+            access_token=credentials.token,
+            scopes=["https://www.googleapis.com/auth/gmail.send"],
+        )
+        db.add(conn)
+    db.commit()
+
+    return {"status": "connected", "email": connected_email}

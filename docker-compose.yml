@@ -46,6 +46,20 @@ services:
       - backend
       - redis
 
+  beat:
+    build:
+      context: ./backend
+    command: celery -A app.workers.celery_app.celery_app beat --loglevel=info
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/pebelai
+      REDIS_URL: redis://redis:6379/0
+      CAREERS_INTERNAL_API_KEY: change-me
+    depends_on:
+      - redis
+      - backend
+
   postgres:
     image: postgres:16-alpine
     environment:
