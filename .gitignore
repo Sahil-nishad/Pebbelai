@@ -42,3 +42,7 @@ yarn-error.log*
 next-env.d.ts
 .env*
 scratch/
+backend/.venv/
+backend/storage/
+backend/**/__pycache__/
+*.pyc
