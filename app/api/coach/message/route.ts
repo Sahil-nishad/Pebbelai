@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, unauthorized } from '@/lib/auth'
-import { groq, MODEL } from '@/lib/groq'
+import { getGroqClient, hasGroqKey, MODEL } from '@/lib/groq'
 import { getCoachSession, updateCoachSession } from '@/lib/coach-session-store'
 import { isMissingTableError } from '@/lib/supabase'
 
@@ -66,6 +66,8 @@ REPLY FORMAT:
 - Next step: If this keeps happening, send me the exact prompt and I will tighten the coach behavior.`
 
   try {
+    if (!hasGroqKey()) throw new Error('AI service is not configured.')
+    const groq = getGroqClient()
     const response = await groq.chat.completions.create({
       model: MODEL,
       messages: [
