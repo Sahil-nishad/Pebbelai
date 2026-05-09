@@ -1,15 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, Radar, ExternalLink } from 'lucide-react'
+import { Search, Radar, ExternalLink, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getRecruiterFeed, searchRecruiters } from '@/services/careers'
-import type { RecruiterFeedItem } from '@/types/careers'
+import { getRecruiterFeed, getResumes, searchRecruiters } from '@/services/careers'
+import type { CareerResume, RecruiterFeedItem } from '@/types/careers'
+
+const DEFAULT_QUERY = 'data analyst hiring, business analyst hiring'
 
 function RecruiterSkeleton() {
   return (
@@ -31,28 +33,60 @@ function RecruiterSkeleton() {
 
 export default function CareersRecruitersPage() {
   const [items, setItems] = useState<RecruiterFeedItem[]>([])
-  const [query, setQuery] = useState('data analyst hiring, business analyst hiring')
+  const [resumes, setResumes] = useState<CareerResume[]>([])
+  const [query, setQuery] = useState(DEFAULT_QUERY)
+  const [location, setLocation] = useState('')
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    getRecruiterFeed()
-      .then(setItems)
+    Promise.all([getRecruiterFeed(), getResumes()])
+      .then(async ([feed, resumeData]) => {
+        setItems(feed)
+        setResumes(resumeData)
+        if (!feed.length && resumeData.length) {
+          const results = await searchRecruiters({
+            resume_id: resumeData[0].id,
+            auto_from_resume: true,
+            query_terms: DEFAULT_QUERY.split(',').map((item) => item.trim()).filter(Boolean),
+            limit: 12,
+          })
+          setItems(results)
+        }
+      })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Failed to load feed.')
       })
       .finally(() => setLoading(false))
   }, [])
 
+  async function runResumeSearch(resume: CareerResume, silent = false) {
+    const toastId = silent ? null : toast.loading('Finding recruiter posts from your resume...')
+    const results = await searchRecruiters({
+      resume_id: resume.id,
+      auto_from_resume: true,
+      query_terms: query.split(',').map((item) => item.trim()).filter(Boolean),
+      location: location || undefined,
+      limit: 12,
+    })
+    if (toastId) {
+      toast.success(`Found ${results.length} recruiter posts.`, { id: toastId })
+    }
+    return results
+  }
+
   async function handleSearch() {
     setSearching(true)
     setError(null)
-    const toastId = toast.loading('Scanning recruiter posts…')
+    const toastId = toast.loading('Scanning recruiter posts...')
     try {
       const results = await searchRecruiters({
         query_terms: query.split(',').map((item) => item.trim()).filter(Boolean),
-        limit: 10,
+        location: location || undefined,
+        resume_id: resumes[0]?.id,
+        auto_from_resume: Boolean(resumes[0]),
+        limit: 12,
       })
       setItems(results)
       toast.success(`Found ${results.length} recruiter posts.`, { id: toastId })
@@ -68,6 +102,18 @@ export default function CareersRecruitersPage() {
   return (
     <div className="space-y-6">
       <Card className="bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,249,244,0.95))]">
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white">
+            <Sparkles className="h-5 w-5 text-emerald-600" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold text-slate-900">Resume-powered recruiter discovery</p>
+            <p className="text-sm text-slate-600">
+              This tab can scan LinkedIn, Naukri, Indeed, Wellfound, Glassdoor, and public career pages for hiring posts that fit the skills in your uploaded resume.
+            </p>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -79,8 +125,39 @@ export default function CareersRecruitersPage() {
               placeholder="Search terms separated by commas"
             />
           </div>
+          <Input
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+            className="h-11 lg:w-52"
+            placeholder="Location (optional)"
+          />
           <Button onClick={handleSearch} disabled={searching} className="h-11 rounded-xl px-5">
-            {searching ? 'Scanning recruiters…' : 'Refresh recruiter feed'}
+            {searching ? 'Scanning recruiters...' : 'Refresh recruiter feed'}
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={searching || !resumes.length}
+            onClick={async () => {
+              if (!resumes.length) {
+                toast.error('Upload a resume first so the agent can find matching recruiter posts.')
+                return
+              }
+              setSearching(true)
+              setError(null)
+              try {
+                const results = await runResumeSearch(resumes[0])
+                setItems(results)
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : 'Resume-based search failed.'
+                setError(msg)
+                toast.error(msg)
+              } finally {
+                setSearching(false)
+              }
+            }}
+            className="h-11 rounded-xl px-5"
+          >
+            Match my resume
           </Button>
         </div>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
@@ -99,6 +176,7 @@ export default function CareersRecruitersPage() {
                     <Badge variant={item.match.score >= 70 ? 'success' : item.match.score >= 40 ? 'warning' : 'ghost'}>
                       {item.match.score}% match
                     </Badge>
+                    <Badge variant="ghost">{item.source_platform || 'web'}</Badge>
                     {item.email ? (
                       <Badge variant="info">{item.email}</Badge>
                     ) : (
@@ -137,7 +215,7 @@ export default function CareersRecruitersPage() {
               </div>
               <p className="font-semibold text-slate-900">No recruiter posts yet</p>
               <p className="max-w-sm text-sm text-slate-500">
-                Run a recruiter search above to discover hiring managers and populate the feed.
+                Upload a resume and run a search to let the platform agent discover matching recruiter posts.
               </p>
             </div>
           </Card>

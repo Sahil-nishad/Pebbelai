@@ -8,6 +8,7 @@ import type {
   GeneratedOutreach,
   RecruiterFeedItem,
   CareerFollowUp,
+  RecruiterSearchPayload,
 } from '@/types/careers'
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -49,7 +50,7 @@ export async function getRecruiterFeed() {
   return parseJson<RecruiterFeedItem[]>(await authFetch('/api/careers/recruiters'))
 }
 
-export async function searchRecruiters(payload: { query_terms: string[]; location?: string; limit?: number }) {
+export async function searchRecruiters(payload: RecruiterSearchPayload) {
   return parseJson<RecruiterFeedItem[]>(
     await authFetch('/api/careers/recruiters/search', {
       method: 'POST',

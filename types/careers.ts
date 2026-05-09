@@ -30,6 +30,14 @@ export interface RecruiterFeedItem {
   match: CareerMatch
 }
 
+export interface RecruiterSearchPayload {
+  query_terms?: string[]
+  location?: string
+  limit?: number
+  resume_id?: string
+  auto_from_resume?: boolean
+}
+
 export interface CareerApplication {
   id: string
   recruiter_id?: string | null

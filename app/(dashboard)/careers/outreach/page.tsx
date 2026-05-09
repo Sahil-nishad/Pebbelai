@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Sparkles, Send, Bot } from 'lucide-react'
+import { Sparkles, Send, Bot, Radar } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { generateOutreachEmail, getRecruiterFeed, getResumes, sendOutreachEmail } from '@/services/careers'
+import { generateOutreachEmail, getRecruiterFeed, getResumes, searchRecruiters, sendOutreachEmail } from '@/services/careers'
 import type { CareerResume, GeneratedOutreach, RecruiterFeedItem } from '@/types/careers'
 
 export default function CareersOutreachPage() {
@@ -27,11 +27,20 @@ export default function CareersOutreachPage() {
 
   useEffect(() => {
     Promise.all([getResumes(), getRecruiterFeed()])
-      .then(([resumeData, recruiterData]) => {
+      .then(async ([resumeData, recruiterData]) => {
         setResumes(resumeData)
-        setRecruiters(recruiterData)
         setResumeId(resumeData[0]?.id || '')
-        setPostId(recruiterData[0]?.recruiter_post_id || '')
+        let nextRecruiters = recruiterData
+        if (!recruiterData.length && resumeData.length) {
+          nextRecruiters = await searchRecruiters({
+            resume_id: resumeData[0].id,
+            auto_from_resume: true,
+            limit: 12,
+          })
+          toast.success(`Found ${nextRecruiters.length} matching recruiter posts from your resume.`)
+        }
+        setRecruiters(nextRecruiters)
+        setPostId(nextRecruiters[0]?.recruiter_post_id || '')
       })
       .catch((err) => toast.error(err instanceof Error ? err.message : 'Could not load resumes or recruiter feed.'))
       .finally(() => setDataLoading(false))
@@ -87,7 +96,7 @@ export default function CareersOutreachPage() {
       <Card className="space-y-5">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">AI outreach generator</h2>
-          <p className="text-sm text-slate-500">Choose a resume and recruiter post, then generate a personalized cold email.</p>
+          <p className="text-sm text-slate-500">Choose a resume and recruiter post, then generate a personalized cold email. If no feed exists yet, this tab will first discover matching hiring posts from your resume.</p>
         </div>
 
         {dataLoading ? (
@@ -128,6 +137,37 @@ export default function CareersOutreachPage() {
                 ))}
               </select>
             </label>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full rounded-xl"
+              onClick={async () => {
+                if (!resumeId) {
+                  toast.error('Upload and select a resume first.')
+                  return
+                }
+                setDataLoading(true)
+                const toastId = toast.loading('Discovering matching recruiter posts...')
+                try {
+                  const results = await searchRecruiters({
+                    resume_id: resumeId,
+                    auto_from_resume: true,
+                    limit: 12,
+                  })
+                  setRecruiters(results)
+                  setPostId(results[0]?.recruiter_post_id || '')
+                  toast.success(`Found ${results.length} recruiter posts.`, { id: toastId })
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Recruiter discovery failed.', { id: toastId })
+                } finally {
+                  setDataLoading(false)
+                }
+              }}
+            >
+              <Radar className="mr-2 h-4 w-4" />
+              Discover recruiter posts from resume
+            </Button>
 
             <label className="block space-y-1.5 text-sm font-medium text-slate-700">
               Custom notes (optional)

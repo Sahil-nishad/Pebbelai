@@ -40,6 +40,8 @@ class RecruiterSearchRequest(BaseModel):
     query_terms: list[str] = Field(default_factory=list)
     location: str | None = None
     limit: int = Field(default=10, ge=1, le=25)
+    resume_id: str | None = None
+    auto_from_resume: bool = False
 
 
 class GenerateEmailRequest(BaseModel):

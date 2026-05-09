@@ -107,9 +107,25 @@ async def search_recruiters(
 ) -> list[RecruiterFeedItem]:
     enforce_rate_limit(f"search:{user.id}", limit=12, window_seconds=3600)
     latest_resume = db.scalar(select(Resume).where(Resume.user_id == user.id).order_by(Resume.created_at.desc()))
-    resume_skills = latest_resume.extracted_skills if latest_resume else []
+    selected_resume = latest_resume
+    if payload.resume_id:
+        selected_resume = db.get(Resume, payload.resume_id)
+        if not selected_resume or str(selected_resume.user_id) != user.id:
+            raise HTTPException(status_code=404, detail="Resume not found.")
 
-    results = await recruiter_search.search(payload.query_terms, payload.location, payload.limit)
+    if payload.auto_from_resume and not selected_resume:
+        raise HTTPException(status_code=400, detail="Upload a resume before searching recruiters.")
+
+    resume_skills = selected_resume.extracted_skills if selected_resume else []
+    resume_experience = selected_resume.extracted_experience if selected_resume else []
+
+    results = await recruiter_search.search(
+        payload.query_terms,
+        payload.location,
+        payload.limit,
+        resume_skills=resume_skills,
+        resume_experience=resume_experience,
+    )
     items: list[RecruiterFeedItem] = []
 
     for result in results:
