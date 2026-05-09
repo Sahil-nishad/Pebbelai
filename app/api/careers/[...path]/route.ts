@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, unauthorized } from '@/lib/auth'
 
 const API_BASE = process.env.CAREERS_API_URL || 'http://localhost:8000'
+const INTERNAL_KEY = process.env.CAREERS_INTERNAL_API_KEY
+
+function serviceUnavailable(message: string) {
+  return NextResponse.json({ error: message }, { status: 503 })
+}
 
 async function proxy(request: NextRequest, params: { path: string[] }) {
   console.log(`[Careers Proxy] ${request.method} ${params.path.join('/')}`)
@@ -12,13 +17,23 @@ async function proxy(request: NextRequest, params: { path: string[] }) {
     return unauthorized()
   }
 
+  if (process.env.NODE_ENV === 'production' && !process.env.CAREERS_API_URL) {
+    console.error('[Careers Proxy] CAREERS_API_URL is missing in production')
+    return serviceUnavailable('Careers service is not configured. Set CAREERS_API_URL in production.')
+  }
+
+  if (process.env.NODE_ENV === 'production' && !INTERNAL_KEY) {
+    console.error('[Careers Proxy] CAREERS_INTERNAL_API_KEY is missing in production')
+    return serviceUnavailable('Careers service credentials are not configured.')
+  }
+
   const target = `${API_BASE}/api/careers/${params.path.join('/')}${request.nextUrl.search}`
   console.log(`[Careers Proxy] Forwarding to: ${target}`)
   
   const headers = new Headers()
   headers.set('x-pebel-user-id', auth.user.id)
   headers.set('x-pebel-user-email', auth.user.email)
-  headers.set('x-internal-service-key', process.env.CAREERS_INTERNAL_API_KEY || 'change-me')
+  headers.set('x-internal-service-key', INTERNAL_KEY || 'change-me')
 
   const contentType = request.headers.get('content-type') || ''
   let body: BodyInit | undefined
@@ -50,7 +65,10 @@ async function proxy(request: NextRequest, params: { path: string[] }) {
     })
   } catch (err) {
     console.error('[Careers Proxy] Fetch error:', err)
-    return NextResponse.json({ error: 'Failed to connect to careers service.' }, { status: 502 })
+    return NextResponse.json(
+      { error: `Failed to connect to careers service at ${API_BASE}. Check the backend deployment and CAREERS_API_URL.` },
+      { status: 502 }
+    )
   }
 }
 

@@ -23,7 +23,7 @@ export default function CareersDashboardPage() {
   useEffect(() => {
     getCareerAnalytics()
       .then(setAnalytics)
-      .catch(() => toast.error('Could not load career analytics.'))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Could not load career analytics.'))
       .finally(() => setLoading(false))
   }, [])
 

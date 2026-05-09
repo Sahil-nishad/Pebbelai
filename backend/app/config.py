@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +34,15 @@ class Settings(BaseSettings):
     encryption_secret: str = "development-secret"
     allowed_resume_extensions: tuple[str, ...] = (".pdf", ".docx")
     frontend_app_url: str = "http://localhost:3000"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        if value.startswith("postgres://"):
+            return value.replace("postgres://", "postgresql+psycopg://", 1)
+        if value.startswith("postgresql://"):
+            return value.replace("postgresql://", "postgresql+psycopg://", 1)
+        return value
 
 
 @lru_cache

@@ -25,7 +25,7 @@ async function patchReplyStatus(id: string, reply_status: string) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Update failed.' }))
-    throw new Error(err.error || 'Update failed.')
+    throw new Error(err.detail || err.error || 'Update failed.')
   }
   return res.json() as Promise<CareerApplication>
 }
@@ -38,7 +38,7 @@ export default function CareersApplicationsPage() {
   useEffect(() => {
     getCareerApplications()
       .then(setApplications)
-      .catch(() => toast.error('Failed to load applications.'))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Failed to load applications.'))
       .finally(() => setLoading(false))
   }, [])
 

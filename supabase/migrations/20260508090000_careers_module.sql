@@ -70,4 +70,18 @@ create table if not exists public.applications (
 
 create index if not exists applications_user_id_idx on public.applications(user_id);
 
+create table if not exists public.followups (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  application_id uuid not null references public.applications(id) on delete cascade,
+  subject text not null,
+  body text not null,
+  sent_status text not null default 'pending',
+  gmail_message_id text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists followups_user_id_idx on public.followups(user_id);
+create index if not exists followups_application_id_idx on public.followups(application_id);
+
 commit;

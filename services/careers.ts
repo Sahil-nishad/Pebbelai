@@ -11,12 +11,21 @@ import type {
 } from '@/types/careers'
 
 async function parseJson<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get('content-type') || ''
+  const payload = contentType.includes('application/json')
+    ? await response.json().catch(() => null)
+    : await response.text().catch(() => '')
+
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: 'Request failed.' }))
     console.error(`[Careers Service] ${response.status} Error:`, payload)
-    throw new Error(payload.detail || payload.error || 'Request failed.')
+    if (payload && typeof payload === 'object') {
+      const errorPayload = payload as { detail?: string; error?: string; message?: string }
+      throw new Error(errorPayload.detail || errorPayload.error || errorPayload.message || `Careers request failed (${response.status}).`)
+    }
+    throw new Error(typeof payload === 'string' && payload ? payload : `Careers request failed (${response.status}).`)
   }
-  return response.json() as Promise<T>
+
+  return payload as T
 }
 
 export async function getCareerAnalytics() {

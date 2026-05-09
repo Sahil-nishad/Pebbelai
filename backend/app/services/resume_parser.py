@@ -1,14 +1,28 @@
 from pathlib import Path
 import re
+import logging
 
 import fitz
 import spacy
+from spacy.language import Language
 from docx import Document
+
+logger = logging.getLogger(__name__)
 
 
 class ResumeParserService:
     def __init__(self) -> None:
-        self.nlp = spacy.load("en_core_web_sm")
+        self.nlp = self._load_nlp()
+
+    def _load_nlp(self) -> Language:
+        try:
+            return spacy.load("en_core_web_sm")
+        except OSError:
+            logger.warning("spaCy model en_core_web_sm is not installed; using a blank English pipeline.")
+            nlp = spacy.blank("en")
+            if "sentencizer" not in nlp.pipe_names:
+                nlp.add_pipe("sentencizer")
+            return nlp
 
     def parse(self, file_path: Path) -> dict:
         text = self._extract_text(file_path)

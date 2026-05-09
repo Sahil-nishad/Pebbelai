@@ -127,9 +127,17 @@ Frontend:
 Backend:
 - deploy the `backend/` service to Railway, Render, Fly.io, ECS, or Kubernetes
 - provision PostgreSQL and Redis
-- run `alembic upgrade head` during release
+- the backend Docker image starts through `backend/start.sh`, which runs `alembic upgrade head` before `uvicorn`
 - run a separate Celery worker process
 - persist `backend/storage/resumes` to object storage or a mounted volume for production
+- for Render, `render.yaml` defines a Docker web service, managed Postgres, a persistent `/app/storage` disk, and `/health` checks
+
+Production environment:
+- use `production.env.example` as the checklist for frontend and backend secrets
+- set `CAREERS_API_URL` and `CAREERS_INTERNAL_API_KEY` on the Next.js frontend
+- set the same `CAREERS_INTERNAL_API_KEY`, `DATABASE_URL`, `FRONTEND_APP_URL`, and `UPLOAD_DIR` on the backend
+- set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM_EMAIL` so outreach sends work immediately
+- optionally set `OPENAI_API_KEY`; without it, outreach generation falls back to the local draft generator
 
 ## Notes
 

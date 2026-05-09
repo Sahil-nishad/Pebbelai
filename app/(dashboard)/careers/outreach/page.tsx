@@ -33,7 +33,7 @@ export default function CareersOutreachPage() {
         setResumeId(resumeData[0]?.id || '')
         setPostId(recruiterData[0]?.recruiter_post_id || '')
       })
-      .catch(() => toast.error('Could not load resumes or recruiter feed.'))
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Could not load resumes or recruiter feed.'))
       .finally(() => setDataLoading(false))
   }, [])
 

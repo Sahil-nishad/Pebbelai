@@ -40,7 +40,7 @@ export default function CareersResumePage() {
 
   useEffect(() => {
     refresh()
-      .catch(() => {})
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Could not load resumes.'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -100,7 +100,7 @@ export default function CareersResumePage() {
             const t = toast.loading('Refreshing resume list...')
             refresh()
               .then(() => toast.success('List updated.', { id: t }))
-              .catch(() => toast.error('Refresh failed.', { id: t }))
+              .catch((err) => toast.error(err instanceof Error ? err.message : 'Refresh failed.', { id: t }))
           }}
           variant="secondary"
           className="w-full rounded-xl"
