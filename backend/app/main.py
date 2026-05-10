@@ -31,23 +31,16 @@ def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/debug/settings")
-def debug_settings() -> JSONResponse:
-    """Debug endpoint to check environment variables."""
-    env_vars = [
-        "ENVIRONMENT",
-        "GMAIL_CLIENT_ID",
-        "GMAIL_CLIENT_SECRET",
-        "GMAIL_REDIRECT_URI",
-        "DATABASE_URL",
-    ]
+# Debug endpoint - NO AUTH to test env vars
+@app.get("/debug/env")
+def debug_env() -> JSONResponse:
+    """Debug endpoint - no auth required."""
+    s = get_settings()  # Fresh instance
     return JSONResponse({
-        "env_from_os": {k: os.environ.get(k, "NOT_SET") for k in env_vars},
-        "settings_attrs": {
-            "gmail_redirect_uri": str(settings.gmail_redirect_uri) if settings.gmail_redirect_uri else None,
-            "gmail_client_id": str(settings.gmail_client_id) if settings.gmail_client_id else None,
-            "environment": settings.environment,
-        },
+        "gmail_client_id": s.gmail_client_id,
+        "gmail_redirect_uri": s.gmail_redirect_uri,
+        "careers_internal_api_key": s.careers_internal_api_key[:8] + "..." if s.careers_internal_api_key else None,
+        "environment": s.environment,
     })
 
 
