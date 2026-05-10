@@ -31,23 +31,23 @@ def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
 
 
-# Debug endpoint - WITH auth to see what's failing
-@app.get("/debug/auth-check")
-def debug_auth(
-    x_pebel_user_id: str | None = Header(default=None),
-    x_pebel_user_email: str | None = Header(default=None),
-    x_internal_service_key: str | None = Header(default=None),
-) -> JSONResponse:
-    """Debug endpoint to check auth headers."""
+# Unauthed check - no auth required
+@app.get("/debug/env")
+def debug_env() -> JSONResponse:
+    """Check env vars - no auth."""
     s = get_settings()
     return JSONResponse({
-        "received_headers": {
-            "x_pebel_user_id": x_pebel_user_id,
-            "x_pebel_user_email": x_pebel_user_email,
-            "x_internal_service_key": x_internal_service_key,
+        "env_vars": {
+            "gmail_client_id_set": bool(s.gmail_client_id),
+            "gmail_redirect_uri": s.gmail_redirect_uri,
+            "internal_api_key_set": bool(s.careers_internal_api_key),
+            "internal_api_key_value": s.careers_internal_api_key,
+            "environment": s.environment,
         },
-        "expected_key": s.careers_internal_api_key[:8] + "..." if s.careers_internal_api_key else None,
-        "key_matches": x_internal_service_key == s.careers_internal_api_key if x_internal_service_key and s.careers_internal_api_key else False,
+        "from_os": {
+            "GMAIL_CLIENT_ID": os.environ.get("GMAIL_CLIENT_ID", "NOT_SET"),
+            "CAREERS_INTERNAL_API_KEY": os.environ.get("CAREERS_INTERNAL_API_KEY", "NOT_SET"),
+        }
     })
 
 
