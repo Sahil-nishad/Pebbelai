@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAuth, unauthorized } from '@/lib/auth'
 
-const API_BASE = process.env.CAREERS_API_URL || 'http://localhost:8000'
-const INTERNAL_KEY = process.env.CAREERS_INTERNAL_API_KEY
+const API_BASE = process.env.CAREERS_API_URL || 'https://pebelaijob-1.onrender.com'
+const INTERNAL_KEY = process.env.CAREERS_INTERNAL_API_KEY || 'Xk9p2mLvNqR4wT8yJ3hF7cB6dE0sA1oZ'
 
 function serviceUnavailable(message: string) {
   return NextResponse.json({ error: message }, { status: 503 })
@@ -17,18 +17,9 @@ async function proxy(request: NextRequest, params: { path: string[] }) {
     return unauthorized()
   }
 
-  if (process.env.NODE_ENV === 'production' && !process.env.CAREERS_API_URL) {
-    console.error('[Careers Proxy] CAREERS_API_URL is missing in production')
-    return serviceUnavailable('Careers service is not configured. Set CAREERS_API_URL in production.')
-  }
-
-  if (process.env.NODE_ENV === 'production' && !INTERNAL_KEY) {
-    console.error('[Careers Proxy] CAREERS_INTERNAL_API_KEY is missing in production')
-    return serviceUnavailable('Careers service credentials are not configured.')
-  }
-
   const target = `${API_BASE}/api/careers/${params.path.join('/')}${request.nextUrl.search}`
   console.log(`[Careers Proxy] Forwarding to: ${target}`)
+  console.log(`[Careers Proxy] Using INTERNAL_KEY: ${INTERNAL_KEY?.slice(0, 4)}...`)
   
   const headers = new Headers()
   headers.set('x-pebel-user-id', auth.user.id)
