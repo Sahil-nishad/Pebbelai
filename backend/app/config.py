@@ -44,16 +44,11 @@ class Settings(BaseSettings):
         return value
 
 
-# Don't cache settings - always read fresh from env (especially for production deployment)
-_settings_instance: Settings | None = None
-
-
+# Always create fresh settings - don't cache at all to pick up env changes
 def get_settings() -> Settings:
-    global _settings_instance
-    if _settings_instance is None:
-        _settings_instance = Settings()
-        # Create directories only in development
-        if _settings_instance.environment == "development":
-            _settings_instance.upload_dir.mkdir(parents=True, exist_ok=True)
-            _settings_instance.upload_dir.parent.mkdir(parents=True, exist_ok=True)
-    return _settings_instance
+    settings = Settings()
+    # Create directories only in development
+    if settings.environment == "development":
+        settings.upload_dir.mkdir(parents=True, exist_ok=True)
+        settings.upload_dir.parent.mkdir(parents=True, exist_ok=True)
+    return settings
