@@ -80,5 +80,7 @@ export interface GmailConnectionStatus {
   id: string
   email: string
   is_active: boolean
+  emails_sent_today: number
+  daily_limit: number
   created_at: string
 }

@@ -113,6 +113,8 @@ class GmailConnectionRead(BaseModel):
     id: str
     email: str
     is_active: bool
+    emails_sent_today: int = 0
+    daily_limit: int = 25
     created_at: datetime
 
 

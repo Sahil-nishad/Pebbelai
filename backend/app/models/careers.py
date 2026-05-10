@@ -88,12 +88,19 @@ class GmailConnection(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(String(255), index=True)
     email: Mapped[str] = mapped_column(String(255))
-    refresh_token: Mapped[str] = mapped_column(Text)
-    access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    encrypted_refresh_token: Mapped[str] = mapped_column(Text)  # Encrypted
+    encrypted_access_token: Mapped[str | None] = mapped_column(Text, nullable=True)  # Encrypted
     token_expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     scopes: Mapped[list[str]] = mapped_column(JSON, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Daily limit tracking
+    emails_sent_today: Mapped[int] = mapped_column(Integer, default=0)
+    daily_limit: Mapped[int] = mapped_column(Integer, default=25)  # Default 25/day
+    last_email_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # OAuth state
+    oauth_state: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class FollowUp(Base):

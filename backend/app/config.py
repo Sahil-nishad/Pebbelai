@@ -45,9 +45,16 @@ class Settings(BaseSettings):
         return value
 
 
-@lru_cache
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
     settings = Settings()
-    settings.upload_dir.mkdir(parents=True, exist_ok=True)
-    settings.upload_dir.parent.mkdir(parents=True, exist_ok=True)
+    # Create directories only in development
+    if settings.environment == "development":
+        settings.upload_dir.mkdir(parents=True, exist_ok=True)
+        settings.upload_dir.parent.mkdir(parents=True, exist_ok=True)
     return settings
+
+
+def clear_settings_cache() -> None:
+    """Clear the settings cache to reload from environment."""
+    get_settings.cache_clear()

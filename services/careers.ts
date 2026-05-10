@@ -120,3 +120,42 @@ export async function getFollowUps(application_id?: string) {
     : '/api/careers/followup'
   return parseJson<CareerFollowUp[]>(await authFetch(url))
 }
+
+// ─────────────────────────────────────────────────────────
+// Gmail Service
+// ─────────────────────────────────────────────────────────
+
+export interface GmailConnectionStatus {
+  id: string
+  email: string
+  is_active: boolean
+  emails_sent_today: number
+  daily_limit: number
+  created_at: string
+}
+
+export interface GmailUsage {
+  emails_sent_today: number
+  daily_limit: number
+  remaining: number
+}
+
+export async function getGmailStatus(): Promise<GmailConnectionStatus | null> {
+  return parseJson<GmailConnectionStatus | null>(await authFetch('/api/careers/gmail/status'))
+}
+
+export async function initiateGmailOAuth(): Promise<{ auth_url: string }> {
+  return parseJson<{ auth_url: string }>(
+    await authFetch('/api/careers/gmail/initiate', { method: 'POST' })
+  )
+}
+
+export async function disconnectGmail(): Promise<{ status: string; message: string }> {
+  return parseJson<{ status: string; message: string }>(
+    await authFetch('/api/careers/gmail/disconnect', { method: 'POST' })
+  )
+}
+
+export async function getGmailUsage(): Promise<GmailUsage> {
+  return parseJson<GmailUsage>(await authFetch('/api/careers/gmail/usage'))
+}

@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timedelta
+
 from app.deps import AuthenticatedUser, db_session, get_current_user
 from app.models.careers import Application, FollowUp, GmailConnection, Recruiter, RecruiterPost, Resume
 from app.schemas.careers import (
@@ -29,6 +31,7 @@ from app.services.matching import MatchingService
 from app.services.recruiter_search import RecruiterSearchService
 from app.services.resume_parser import ResumeParserService
 from app.utils.security import enforce_rate_limit, stable_filename, validate_resume_upload
+from app.utils.encryption import get_encryptor
 
 router = APIRouter()
 
@@ -450,21 +453,180 @@ def gmail_oauth_callback(
     connected_email = profile.get("emailAddress", "unknown@gmail.com")
 
     user_id = state
+    encryptor = get_encryptor()
+
+    # Encrypt tokens before storage
+    encrypted_refresh = encryptor.encrypt(credentials.refresh_token or "")
+    encrypted_access = encryptor.encrypt(credentials.token or "")
+
     existing = db.scalar(select(GmailConnection).where(GmailConnection.user_id == user_id))
     if existing:
         existing.email = connected_email
-        existing.refresh_token = credentials.refresh_token or existing.refresh_token
-        existing.access_token = credentials.token
+        existing.encrypted_refresh_token = encrypted_refresh
+        existing.encrypted_access_token = encrypted_access
+        existing.token_expiry = datetime.utcnow() + timedelta(seconds=credentials.expiry_in)
         existing.is_active = True
     else:
         conn = GmailConnection(
             user_id=user_id,
             email=connected_email,
-            refresh_token=credentials.refresh_token or "",
-            access_token=credentials.token,
+            encrypted_refresh_token=encrypted_refresh,
+            encrypted_access_token=encrypted_access,
+            token_expiry=datetime.utcnow() + timedelta(seconds=credentials.expiry_in),
             scopes=["https://www.googleapis.com/auth/gmail.send"],
         )
         db.add(conn)
     db.commit()
 
     return {"status": "connected", "email": connected_email}
+
+
+# ─── Gmail Disconnect ─────────────────────────────────────────────────────────
+
+@router.post("/gmail/disconnect")
+def gmail_disconnect(
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> dict[str, str]:
+    """Disconnect and revoke Gmail access."""
+    from app.services.gmail_service import GmailService
+    from app.utils.encryption import get_encryptor
+
+    conn = db.scalar(
+        select(GmailConnection).where(
+            GmailConnection.user_id == user.id,
+            GmailConnection.is_active == True,  # noqa: E712
+        )
+    )
+
+    if not conn:
+        return {"status": "disconnected", "message": "No Gmail connection found."}
+
+    # Try to revoke the token
+    encryptor = get_encryptor()
+    refresh_token = encryptor.decrypt(conn.encrypted_refresh_token) if conn.encrypted_refresh_token else ""
+
+    if refresh_token:
+        try:
+            from google.oauth2 import revoke as oauth_revoke
+
+            oauth_revoke.revokeToken(refresh_token)
+        except Exception:
+            pass  # Best effort
+
+    # Delete the connection
+    db.delete(conn)
+    db.commit()
+
+    return {"status": "disconnected", "message": "Gmail disconnected successfully."}
+
+
+# ─── Gmail Send ─────────────────────────────────────────────────────────
+
+@router.post("/gmail/send")
+def gmail_send(
+    to_email: str,
+    subject: str,
+    body: str,
+    resume_filename: str | None = None,
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> dict[str, str]:
+    """Send an email using the user's connected Gmail."""
+    from datetime import datetime, timedelta
+    from pathlib import Path
+
+    from app.config import get_settings
+    from app.services.gmail_service import GmailService
+    from app.utils.encryption import get_encryptor
+    from app.models.careers import Resume
+
+    settings = get_settings()
+    encryptor = get_encryptor()
+    gmail_service = GmailService()
+
+    # Get user's Gmail connection
+    conn = db.scalar(
+        select(GmailConnection).where(
+            GmailConnection.user_id == user.id,
+            GmailConnection.is_active == True,  # noqa: E712
+        )
+    )
+
+    if not conn:
+        raise HTTPException(status_code=400, detail="Gmail not connected. Please connect Gmail first.")
+
+    # Check daily limit
+    today = datetime.utcnow().date()
+    if conn.last_email_date and conn.last_email_date.date() == today:
+        if conn.emails_sent_today >= conn.daily_limit:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily email limit ({conn.daily_limit}) reached. Try again tomorrow.",
+            )
+    else:
+        # Reset counter for new day
+        conn.emails_sent_today = 0
+
+    # Decrypt refresh token
+    refresh_token = encryptor.decrypt(conn.encrypted_refresh_token)
+    if not refresh_token:
+        raise HTTPException(status_code=400, detail="Invalid Gmail token. Please reconnect.")
+
+    # Get resume file if provided
+    resume_path: Path | None = None
+    if resume_filename:
+        resume_path = settings.upload_dir / resume_filename
+
+    # Send the email
+    message_id = gmail_service.send_message(
+        to_email=to_email,
+        subject=subject,
+        body=body,
+        resume_path=resume_path,
+        refresh_token=refresh_token,
+    )
+
+    # Update counters
+    conn.emails_sent_today += 1
+    conn.last_email_date = datetime.utcnow()
+    db.commit()
+
+    return {
+        "status": "sent",
+        "message_id": message_id,
+        "emails_sent_today": conn.emails_sent_today,
+        "daily_limit": conn.daily_limit,
+    }
+
+
+# ─── Gmail Usage ─────────────────────────────────────────────────────────
+
+@router.get("/gmail/usage")
+def gmail_usage(
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: Session = Depends(db_session),
+) -> dict[str, int]:
+    """Get email usage statistics."""
+    from datetime import datetime
+
+    conn = db.scalar(
+        select(GmailConnection).where(
+            GmailConnection.user_id == user.id,
+            GmailConnection.is_active == True,  # noqa: E712
+        )
+    )
+
+    if not conn:
+        return {"emails_sent_today": 0, "daily_limit": 25, "remaining": 25}
+
+    # Reset if new day
+    today = datetime.utcnow().date()
+    if conn.last_email_date and conn.last_email_date.date() != today:
+        conn.emails_sent_today = 0
+
+    return {
+        "emails_sent_today": conn.emails_sent_today,
+        "daily_limit": conn.daily_limit,
+        "remaining": max(0, conn.daily_limit - conn.emails_sent_today),
+    }
