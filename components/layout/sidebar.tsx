@@ -10,7 +10,6 @@ import {
   Settings,
   Puzzle,
   BookOpen,
-  BriefcaseBusiness,
 } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
@@ -20,7 +19,6 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
   { icon: ClipboardList, label: 'Applications', href: '/applications' },
   { icon: Bot, label: 'AI Coach', href: '/coach' },
-  { icon: BriefcaseBusiness, label: 'Careers', href: '/careers' },
   { icon: Bell, label: 'Reminders', href: '/reminders' },
   { icon: Puzzle, label: 'Extension', href: '/extension' },
   { icon: BookOpen, label: 'Blog', href: '/blog' },

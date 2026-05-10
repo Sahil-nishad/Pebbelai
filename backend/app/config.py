@@ -9,29 +9,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    app_name: str = "PebelAI Careers API"
+    app_name: str = "PebelAI API"
     environment: Literal["development", "staging", "production"] = "development"
-    database_url: str = Field(default="sqlite:///./storage/careers.db")
-    redis_url: str = Field(default="redis://localhost:6379/0")
+    database_url: str = Field(default="sqlite:///./storage/db.sqlite")
     openai_api_key: str | None = None
     openai_model: str = "gpt-4.1-mini"
-    careers_internal_api_key: str = "change-me"
-    upload_dir: Path = Field(default=Path("storage/resumes"))
-    max_upload_size_mb: int = 8
-    recruiter_search_per_run: int = 12
-    recruiter_search_delay_ms: int = 1800
-    gmail_client_id: str | None = None
-    gmail_client_secret: str | None = None
-    gmail_redirect_uri: str | None = None
-    gmail_refresh_token: str | None = None
-    gmail_sender_email: str | None = None
-    smtp_host: str | None = None
-    smtp_port: int = 587
-    smtp_user: str | None = None
-    smtp_pass: str | None = None
-    smtp_from_email: str | None = None
-    encryption_secret: str = "development-secret"
-    allowed_resume_extensions: tuple[str, ...] = (".pdf", ".docx")
     frontend_app_url: str = "http://localhost:3000"
 
     @field_validator("database_url", mode="before")
@@ -44,11 +26,5 @@ class Settings(BaseSettings):
         return value
 
 
-# Always create fresh settings - don't cache at all to pick up env changes
 def get_settings() -> Settings:
-    settings = Settings()
-    # Create directories only in development
-    if settings.environment == "development":
-        settings.upload_dir.mkdir(parents=True, exist_ok=True)
-        settings.upload_dir.parent.mkdir(parents=True, exist_ok=True)
-    return settings
+    return Settings()
