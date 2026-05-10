@@ -1,0 +1,32 @@
+<svg viewBox="0 0 278 72" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PebelAi">
+  <!-- Bottom stone -->
+  <ellipse fill="rgba(0,0,0,0.07)" cx="40" cy="58" rx="36" ry="8"/>
+  <ellipse fill="#1a6b3f" cx="40" cy="52" rx="34" ry="13"/>
+
+  <!-- Mid stone -->
+  <ellipse fill="rgba(0,0,0,0.07)" cx="40" cy="35" rx="24" ry="5"/>
+  <ellipse fill="#2d8a52" cx="40" cy="30" rx="23" ry="10"/>
+
+  <!-- Top stone -->
+  <ellipse fill="rgba(0,0,0,0.07)" cx="40" cy="16" rx="14" ry="4"/>
+  <ellipse fill="#6db88a" cx="40" cy="12" rx="14" ry="7"/>
+
+  <!-- Vertical divider -->
+  <line x1="92" y1="8" x2="92" y2="66" stroke="#d8d4ce" stroke-width="0.8"/>
+
+  <!-- Wordmark -->
+  <text x="106" y="43"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="36"
+        font-weight="300"
+        letter-spacing="0.5"
+        fill="#2c2c2c">PebelAi</text>
+
+  <!-- Tagline -->
+  <text x="108" y="58"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="10.5"
+        letter-spacing="0.5">
+    <tspan fill="#6b6b6b">Apply. Track. </tspan><tspan fill="#2d8a52" font-style="italic" font-weight="500">Get Hired.</tspan>
+  </text>
+</svg>

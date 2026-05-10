@@ -1,0 +1,11 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PebelAi">
+  <!-- Bottom stone -->
+  <ellipse fill="rgba(0,0,0,0.08)" cx="32" cy="56" rx="27" ry="7"/>
+  <ellipse fill="#1a6b3f" cx="32" cy="50" rx="26" ry="12"/>
+  <!-- Mid stone -->
+  <ellipse fill="rgba(0,0,0,0.08)" cx="32" cy="34" rx="18" ry="5"/>
+  <ellipse fill="#2d8a52" cx="32" cy="29" rx="17" ry="9"/>
+  <!-- Top stone -->
+  <ellipse fill="rgba(0,0,0,0.08)" cx="32" cy="16" rx="10" ry="3"/>
+  <ellipse fill="#6db88a" cx="32" cy="12" rx="10" ry="6"/>
+</svg>

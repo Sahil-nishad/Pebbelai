@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PebelAI Job Saver</title>
+  <style>
+    :root {
+      --green: #0A6A47;
+      --dark: #13211B;
+      --bg: #F1F5F2;
+      --white: #FFFFFF;
+      --error: #8E1F1F;
+      --muted: #5A655F;
+      --border: #CED7D2;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      width: 320px;
+      background: var(--bg);
+      color: var(--dark);
+    }
+
+    .app {
+      padding: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: var(--dark);
+    }
+
+    /* Account card */
+    .account-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    .account-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .account-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--green);
+      color: var(--white);
+      font-size: 13px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .account-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .account-label {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .account-email {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .account-email.not-logged-in {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    /* Auto-save toggle card */
+    .toggle-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .toggle-info {
+      flex: 1;
+    }
+
+    .toggle-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--dark);
+      display: block;
+    }
+
+    .toggle-desc {
+      font-size: 11px;
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* Toggle switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #CBD5D0;
+      border-radius: 22px;
+      transition: background 0.25s;
+    }
+
+    .slider::before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      top: 3px;
+      background: var(--white);
+      border-radius: 50%;
+      transition: transform 0.25s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .switch input:checked + .slider {
+      background: var(--green);
+    }
+
+    .switch input:checked + .slider::before {
+      transform: translateX(18px);
+    }
+
+    .notice {
+      margin: 0 0 10px;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      background: #E5EEE9;
+      color: var(--dark);
+      line-height: 1.35;
+    }
+
+    .notice a {
+      color: var(--green);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .notice-actions {
+      margin-top: 6px;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    #syncLoginButton {
+      padding: 6px 10px;
+      border-radius: 7px;
+      border: 1px solid #BCD2C7;
+      background: var(--white);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 10px 0;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+
+    form {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      padding: 9px;
+      background: var(--white);
+      color: var(--dark);
+    }
+
+    input:focus,
+    select:focus {
+      outline: 2px solid rgba(10, 106, 71, 0.25);
+      border-color: var(--green);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #saveButton {
+      flex: 1;
+      background: var(--green);
+      color: var(--white);
+    }
+
+    #saveButton[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #retryButton {
+      min-width: 68px;
+      background: #DCE5E0;
+      color: var(--dark);
+    }
+
+    .status {
+      min-height: 18px;
+      margin: 8px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--error);
+    }
+
+    .status.success {
+      color: var(--green);
+    }
+
+    .success {
+      margin-top: 10px;
+      padding: 10px;
+      background: #E4F0EA;
+      border: 1px solid #BCDACD;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .checkmark {
+      margin: 0 auto 6px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: var(--white);
+      background: var(--green);
+    }
+
+    .success p {
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .success a {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    #pageNotice {
+      font-size: 12px;
+      background: #E5EEE9;
+      color: var(--dark);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>PebelAI Job Saver</h1>
+
+    <!-- Account section -->
+    <div class="account-card">
+      <div class="account-row">
+        <div class="account-avatar" id="accountAvatar">?</div>
+        <div class="account-info">
+          <span class="account-label">Logged in as</span>
+          <div class="account-email not-logged-in" id="accountEmail">Not logged in</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth notice (shown when not logged in) -->
+    <p id="authNotice" class="notice hidden">
+      Login at <a href="https://pebelai.com" target="_blank" rel="noreferrer">pebelai.com</a> to enable saving.
+      <span class="notice-actions">
+        <button id="syncLoginButton" type="button">Sync Login</button>
+      </span>
+    </p>
+
+    <!-- Auto-save toggle -->
+    <div class="toggle-card">
+      <div class="toggle-info">
+        <span class="toggle-title">Auto-save on job portals</span>
+        <span class="toggle-desc" id="toggleDesc">Saves jobs automatically when browsing</span>
+      </div>
+      <label class="switch" title="Toggle auto-save">
+        <input type="checkbox" id="autoSaveToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <hr class="divider">
+
+    <p id="pageNotice" class="notice hidden">Navigate to a job listing to save it.</p>
+
+    <p class="section-label">Manual Save</p>
+
+    <form id="jobForm">
+      <label for="jobTitle">
+        Job Title
+        <input id="jobTitle" name="jobTitle" type="text" autocomplete="off">
+      </label>
+
+      <label for="companyName">
+        Company
+        <input id="companyName" name="companyName" type="text" autocomplete="off">
+      </label>
+
+      <label for="location">
+        Location
+        <input id="location" name="location" type="text" autocomplete="off">
+      </label>
+
+      <label for="salaryMin">
+        Salary Min
+        <input id="salaryMin" name="salaryMin" type="number" min="0" placeholder="e.g. 90000">
+      </label>
+
+      <label for="salaryMax">
+        Salary Max
+        <input id="salaryMax" name="salaryMax" type="number" min="0" placeholder="e.g. 120000">
+      </label>
+
+      <label for="status">
+        Status
+        <select id="status" name="status">
+          <option value="applied">applied</option>
+          <option value="saved">saved</option>
+        </select>
+      </label>
+
+      <div class="actions">
+        <button id="saveButton" type="submit">Save to PebelAI</button>
+        <button id="retryButton" type="button" class="hidden">Retry</button>
+      </div>
+    </form>
+
+    <p id="statusMessage" class="status" aria-live="polite"></p>
+
+    <div id="successState" class="success hidden">
+      <div class="checkmark">&#10003;</div>
+      <p>Saved to PebelAI</p>
+      <a href="https://pebelai.com/applications" target="_blank" rel="noreferrer">View in PebelAI</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

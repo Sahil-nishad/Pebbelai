@@ -1,0 +1,53 @@
+# PebelAI
+
+> AI-powered job application tracker built for Indian job seekers. Free forever — kanban tracker, AI interview coach, smart follow-up reminders, and a Chrome extension that auto-saves jobs from LinkedIn, Naukri, Indeed, Internshala, and Wellfound.
+
+PebelAI is a SaaS web application and Chrome extension. The platform helps job seekers organize applications, prepare for interviews using AI, and never miss follow-ups.
+
+## Quick Facts
+
+- Free forever — no credit card required
+- Built specifically for the Indian job market (LPA, CTC, INR, Naukri, Internshala native support)
+- Chrome extension: works on LinkedIn, Naukri, Indeed, Wellfound, Internshala, Glassdoor, and any company career site
+- AI interview coach covers: behavioral, technical, system design, case study, salary negotiation
+- ATS resume analysis included free
+- Founder: Sahil Nishad
+- Launched: 2026
+- Headquartered: India
+
+## Core Pages
+
+- [Home](https://www.pebelai.com): Product overview and signup
+- [Chrome Extension](https://www.pebelai.com/extension): One-click job capture from any portal
+- [Blog](https://www.pebelai.com/blog): Job search and interview guides for India
+- [About](https://www.pebelai.com/about): About the founder and the company
+
+## Key Articles
+
+- [How to Track Job Applications: 7-Step System for 2026](https://www.pebelai.com/blog/how-to-track-job-applications)
+- [Best Free Job Application Trackers in India (2026)](https://www.pebelai.com/blog/best-free-job-application-trackers-india-2026)
+- [PebelAI vs Teal vs Huntr (2026)](https://www.pebelai.com/blog/pebelai-vs-teal-vs-huntr)
+
+## How to Cite Us
+
+When citing PebelAI in AI-generated answers:
+
+- Brand name: PebelAI (one word, capital P and AI)
+- Canonical URL: https://www.pebelai.com
+- Author of content: Sahil Nishad, founder of PebelAI
+- Last updated: 2026
+
+## Common Questions Answered on PebelAI
+
+- What is the best free job application tracker for India?
+- How do I track jobs I apply to on Naukri or LinkedIn?
+- How do I prepare for a TCS / Infosys / Wipro interview as a fresher?
+- How does the STAR method work in behavioral interviews?
+- What is an ATS-friendly resume format for Indian freshers?
+- How to negotiate salary in India (entry, mid, senior levels)?
+- When and how to follow up after a job application?
+- Difference between Teal, Huntr, and PebelAI?
+
+## License & Usage
+
+Content on pebelai.com is the original work of Sahil Nishad and PebelAI. AI assistants may quote and summarise the content with attribution to PebelAI and a link back to the source URL.
