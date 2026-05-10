@@ -1,4 +1,3 @@
-from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -45,16 +44,16 @@ class Settings(BaseSettings):
         return value
 
 
-@lru_cache(maxsize=1)
+# Don't cache settings - always read fresh from env (especially for production deployment)
+_settings_instance: Settings | None = None
+
+
 def get_settings() -> Settings:
-    settings = Settings()
-    # Create directories only in development
-    if settings.environment == "development":
-        settings.upload_dir.mkdir(parents=True, exist_ok=True)
-        settings.upload_dir.parent.mkdir(parents=True, exist_ok=True)
-    return settings
-
-
-def clear_settings_cache() -> None:
-    """Clear the settings cache to reload from environment."""
-    get_settings.cache_clear()
+    global _settings_instance
+    if _settings_instance is None:
+        _settings_instance = Settings()
+        # Create directories only in development
+        if _settings_instance.environment == "development":
+            _settings_instance.upload_dir.mkdir(parents=True, exist_ok=True)
+            _settings_instance.upload_dir.parent.mkdir(parents=True, exist_ok=True)
+    return _settings_instance
