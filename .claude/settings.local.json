@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest jobflow-ai --typescript --tailwind --app --eslint --src-dir=false --import-alias=\"@/*\" --use-npm)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
