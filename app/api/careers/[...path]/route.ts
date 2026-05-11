@@ -3,20 +3,24 @@ import { requireAuth, unauthorized } from '@/lib/auth'
 
 const BACKEND_URL = process.env.CAREERS_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return handleRequest(req, params.path.join('/'), 'GET')
+export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params
+  return handleRequest(req, path.join('/'), 'GET')
 }
 
-export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return handleRequest(req, params.path.join('/'), 'POST')
+export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params
+  return handleRequest(req, path.join('/'), 'POST')
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return handleRequest(req, params.path.join('/'), 'PATCH')
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params
+  return handleRequest(req, path.join('/'), 'PATCH')
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return handleRequest(req, params.path.join('/'), 'DELETE')
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params
+  return handleRequest(req, path.join('/'), 'DELETE')
 }
 
 async function handleRequest(req: NextRequest, path: string, method: string) {
