@@ -9,9 +9,7 @@ import {
   AlertCircle, 
   Check, 
   Trash2, 
-  FileText,
-  Sparkles,
-  Upload
+  Sparkles
 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import * as careers from '@/services/careers'
