@@ -3,80 +3,53 @@ import { requireAuth, unauthorized } from '@/lib/auth'
 
 const BACKEND_URL = process.env.CAREERS_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const auth = await requireAuth(req)
-  if (!auth) return unauthorized()
-
-  const { path } = await params
-  const userId = auth.user.id
-
-  const response = await fetch(`${BACKEND_URL}/careers/${path.join('/')}?user_id=${userId}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-ID': userId,
-    },
-  })
-
-  const data = await response.json()
-  return NextResponse.json(data, { status: response.status })
+export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return handleRequest(req, params.path.join('/'), 'GET')
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const auth = await requireAuth(req)
-  if (!auth) return unauthorized()
-
-  const { path } = await params
-  const userId = auth.user.id
-  const body = await req.json()
-
-  const response = await fetch(`${BACKEND_URL}/careers/${path.join('/')}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-ID': userId,
-    },
-    body: JSON.stringify({ ...body, user_id: userId }),
-  })
-
-  const data = await response.json()
-  return NextResponse.json(data, { status: response.status })
+export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return handleRequest(req, params.path.join('/'), 'POST')
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const auth = await requireAuth(req)
-  if (!auth) return unauthorized()
-
-  const { path } = await params
-  const userId = auth.user.id
-  const body = await req.json()
-
-  const response = await fetch(`${BACKEND_URL}/careers/${path.join('/')}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-ID': userId,
-    },
-    body: JSON.stringify({ ...body, user_id: userId }),
-  })
-
-  const data = await response.json()
-  return NextResponse.json(data, { status: response.status })
+export async function PATCH(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return handleRequest(req, params.path.join('/'), 'PATCH')
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return handleRequest(req, params.path.join('/'), 'DELETE')
+}
+
+async function handleRequest(req: NextRequest, path: string, method: string) {
   const auth = await requireAuth(req)
   if (!auth) return unauthorized()
 
-  const { path } = await params
-  const userId = auth.user.id
+  const url = new URL(req.url)
+  const backendUrl = `${BACKEND_URL}/careers/${path}${url.search}`
 
-  const response = await fetch(`${BACKEND_URL}/careers/${path.join('/')}`, {
-    method: 'DELETE',
+  let body = undefined
+  if (['POST', 'PATCH', 'PUT'].includes(method)) {
+    try {
+      body = JSON.stringify(await req.json())
+    } catch (e) {
+      // Body might be empty or not JSON
+    }
+  }
+
+  const response = await fetch(backendUrl, {
+    method,
     headers: {
       'Content-Type': 'application/json',
-      'X-User-ID': userId,
+      'X-User-ID': auth.user.id,
+      'X-Internal-Key': process.env.CAREERS_INTERNAL_API_KEY || '',
     },
+    body,
   })
 
-  return new NextResponse(null, { status: response.status })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }))
+    return NextResponse.json(error, { status: response.status })
+  }
+
+  const data = await response.json()
+  return NextResponse.json(data)
 }

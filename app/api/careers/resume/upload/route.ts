@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     method: 'POST',
     headers: {
       'X-User-ID': auth.user.id,
+      'X-Internal-Key': process.env.CAREERS_INTERNAL_API_KEY || '',
     },
     body: backendFormData,
   })

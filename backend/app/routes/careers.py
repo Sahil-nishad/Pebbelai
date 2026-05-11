@@ -36,6 +36,7 @@ from app.schemas.careers import (
 )
 from app.utils.encryption import decrypt_token, encrypt_token
 from app.deps import get_current_user
+from app.utils.parser import extract_text_from_file, parse_resume_content
 
 router = APIRouter(prefix="/careers", tags=["careers"])
 
@@ -63,6 +64,10 @@ async def upload_resume(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # Extract text and parse with AI
+    text_content = extract_text_from_file(file_path)
+    parsed_data = await parse_resume_content(text_content)
+
     # Create database entry
     resume = Resume(
         id=str(uuid.uuid4()),
@@ -72,6 +77,11 @@ async def upload_resume(
         file_path=file_path,
         file_size=os.path.getsize(file_path),
         mime_type=file.content_type,
+        parsed_skills=parsed_data.get("parsed_skills", []),
+        parsed_experience=parsed_data.get("parsed_experience", []),
+        parsed_education=parsed_data.get("parsed_education", []),
+        parsed_projects=parsed_data.get("parsed_projects", []),
+        parsed_summary=parsed_data.get("parsed_summary", ""),
     )
     db.add(resume)
     db.commit()
