@@ -13,8 +13,10 @@ class Settings(BaseSettings):
     environment: Literal["development", "staging", "production"] = "development"
     database_url: str = Field(default="sqlite:///./storage/db.sqlite")
     openai_api_key: str | None = None
-    openai_model: str = "gpt-4.1-mini"
+    openai_model: str = "gpt-4o-mini"
     frontend_app_url: str = "http://localhost:3000"
+    upload_dir: str = "storage/resumes"
+    max_upload_size_mb: int = 8
 
     @field_validator("database_url", mode="before")
     @classmethod

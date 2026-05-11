@@ -2,10 +2,14 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile
+import os
+import shutil
+import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app.config import get_settings
 from app.db import get_db
 from app.models.careers import (
     Application,
@@ -37,6 +41,42 @@ router = APIRouter(prefix="/careers", tags=["careers"])
 
 
 # Resume Endpoints
+
+
+@router.post("/resume/upload", response_model=ResumeResponse, status_code=status.HTTP_201_CREATED)
+async def upload_resume(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+    settings = Depends(get_settings),
+):
+    # Ensure upload directory exists
+    upload_path = os.path.join(os.getcwd(), settings.upload_dir)
+    os.makedirs(upload_path, exist_ok=True)
+
+    # Generate unique filename
+    file_ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(upload_path, filename)
+
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Create database entry
+    resume = Resume(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        filename=filename,
+        original_name=file.filename,
+        file_path=file_path,
+        file_size=os.path.getsize(file_path),
+        mime_type=file.content_type,
+    )
+    db.add(resume)
+    db.commit()
+    db.refresh(resume)
+    return resume
 
 
 @router.post("/resume", response_model=ResumeResponse, status_code=status.HTTP_201_CREATED)
@@ -320,7 +360,7 @@ def get_analytics(db: Session = Depends(get_db), user_id: str = Depends(get_curr
     return AnalyticsSummary(
         total_applications=total,
         sent=sent,
-        replied=rejected,
+        replied=replied,
         rejected=rejected,
         no_response=no_response,
         pending=pending,
