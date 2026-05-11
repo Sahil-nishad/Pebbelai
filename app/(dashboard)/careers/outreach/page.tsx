@@ -10,11 +10,11 @@ import {
   Clock, 
   XCircle, 
   Sparkles, 
-  BrainCircuit, 
+  Activity, 
   History, 
   Plus, 
   ArrowRight,
-  MessageSquareText,
+  MessageSquare,
   Trash2,
   Copy,
   ExternalLink,
@@ -107,7 +107,7 @@ export default function CareersOutreachPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2">
-            <BrainCircuit className="h-3 w-3" />
+            <Activity className="h-3 w-3" />
             AI Outreach Active
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -204,7 +204,7 @@ export default function CareersOutreachPage() {
 
                   <div className="mt-10 flex-1 flex flex-col items-center justify-center text-center p-12 rounded-[2rem] bg-slate-50 border border-dashed border-slate-200">
                      <div className="h-20 w-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-6">
-                        <BrainCircuit className={cn("h-10 w-10 text-emerald-600", generating && "animate-pulse")} />
+                        <Activity className={cn("h-10 w-10 text-emerald-600", generating && "animate-pulse")} />
                      </div>
                      <h3 className="text-xl font-bold text-slate-900">Personalized Outreach</h3>
                      <p className="mt-2 text-slate-500 text-sm max-w-sm">
@@ -233,7 +233,7 @@ export default function CareersOutreachPage() {
               ) : (
                 <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center p-12 rounded-[2.5rem] bg-slate-50/50 border border-dashed border-slate-200">
                    <div className="h-20 w-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-6">
-                      <MessageSquareText className="h-10 w-10 text-slate-200" />
+                      <MessageSquare className="h-10 w-10 text-slate-200" />
                    </div>
                    <h3 className="text-xl font-bold text-slate-900">No Post Selected</h3>
                    <p className="mt-2 text-slate-500 text-sm max-w-sm">

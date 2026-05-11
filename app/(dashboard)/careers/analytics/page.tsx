@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  BarChart3, 
+  BarChart, 
   Loader2, 
   TrendingUp, 
   TrendingDown, 
@@ -15,7 +15,7 @@ import {
   PieChart, 
   Activity,
   Zap,
-  ArrowUpRight,
+  ArrowRight,
   Sparkles
 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'

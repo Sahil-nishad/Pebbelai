@@ -11,7 +11,7 @@ import {
   MessageSquare, 
   Trash2, 
   ExternalLink,
-  Linkedin,
+  Link2,
   Building2,
   Bookmark,
   MapPin,
@@ -261,7 +261,7 @@ function RecruiterCard({ recruiter, index }: { recruiter: Recruiter, index: numb
         <div className="flex gap-2 mt-3">
           {recruiter.linkedin_url && (
             <a href={recruiter.linkedin_url} target="_blank" className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
-              <Linkedin className="h-3.5 w-3.5" />
+              <Link2 className="h-3.5 w-3.5" />
             </a>
           )}
           <button className="flex-1 px-3 py-2 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">

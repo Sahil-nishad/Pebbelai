@@ -9,9 +9,9 @@ import {
   AlertCircle, 
   Check, 
   Trash2, 
-  FileSearch,
+  FileText,
   Sparkles,
-  CloudUpload
+  Upload
 } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import * as careers from '@/services/careers'
@@ -103,7 +103,7 @@ export default function CareersResumePage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-3">
-            <FileSearch className="h-3 w-3" />
+            <FileText className="h-3 w-3" />
             Resume Parsing Active
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -158,7 +158,7 @@ export default function CareersResumePage() {
             {uploading ? (
               <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
             ) : (
-              <CloudUpload className="h-10 w-10 text-indigo-600" />
+              <Upload className="h-10 w-10 text-indigo-600" />
             )}
           </div>
           <div className="mt-6 space-y-2">

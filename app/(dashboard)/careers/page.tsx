@@ -6,10 +6,10 @@ import {
   FileText, 
   Radar, 
   Mail, 
-  BarChart3, 
-  ArrowUpRight, 
+  BarChart, 
+  ArrowRight, 
   Clock, 
-  CheckCircle2, 
+  CheckCircle, 
   AlertCircle,
   TrendingUp,
   Briefcase,
@@ -112,7 +112,7 @@ export default function CareersDashboard() {
         <StatCard 
           label="Replies" 
           value={stats?.replied || 0} 
-          icon={CheckCircle2} 
+          icon={CheckCircle} 
           color="indigo"
           trend="Excellent"
         />
@@ -163,7 +163,7 @@ export default function CareersDashboard() {
               
               <button className="w-full mt-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
                 Explore All Opportunities
-                <ArrowUpRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </motion.div>
@@ -173,7 +173,7 @@ export default function CareersDashboard() {
         <div className="space-y-8">
           <motion.div variants={item} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              <CheckCircle className="h-5 w-5 text-emerald-500" />
               Checklist
             </h3>
             <div className="mt-6 space-y-4">

@@ -4,22 +4,22 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
-  LayoutDashboard,
+  Grid,
   FileText,
   Radar,
   Mail,
-  BarChart3,
+  BarChart,
   Settings,
   ChevronRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const careersNav = [
-  { label: 'Dashboard', href: '/careers', icon: LayoutDashboard },
+  { label: 'Dashboard', href: '/careers', icon: Grid },
   { label: 'Resume', href: '/careers/resume', icon: FileText },
   { label: 'Recruiters', href: '/careers/recruiters', icon: Radar },
   { label: 'Outreach', href: '/careers/outreach', icon: Mail },
-  { label: 'Analytics', href: '/careers/analytics', icon: BarChart3 },
+  { label: 'Analytics', href: '/careers/analytics', icon: BarChart },
   { label: 'Settings', href: '/careers/settings', icon: Settings },
 ]
 
