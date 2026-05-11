@@ -250,7 +250,7 @@ function CheckItem({ label, done }: any) {
           ? 'bg-emerald-500 border-emerald-500 text-white' 
           : 'border-slate-200 group-hover:border-emerald-300'
       }`}>
-        {done && <CheckCircle2 className="h-3.5 w-3.5" />}
+        {done && <CheckCircle className="h-3.5 w-3.5" />}
       </div>
       <span className={`text-sm font-medium ${done ? 'text-slate-400 line-through' : 'text-slate-600 group-hover:text-slate-900'}`}>
         {label}

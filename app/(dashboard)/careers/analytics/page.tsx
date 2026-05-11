@@ -169,7 +169,7 @@ export default function CareersAnalyticsPage() {
         </>
       ) : (
         <div className="rounded-[2.5rem] border border-dashed border-slate-200 bg-slate-50/50 p-20 text-center">
-          <BarChart3 className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+          <BarChart className="h-12 w-12 mx-auto text-slate-300 mb-4" />
           <p className="text-slate-500 font-bold">No performance data available yet.</p>
         </div>
       )}
