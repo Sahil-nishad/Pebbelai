@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, X, Volume2, VolumeX, History, MessageSquare, Info, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { useConversation } from '@elevenlabs/react'
+import { useConversation, ConversationProvider } from '@elevenlabs/react'
 import toast from 'react-hot-toast'
 
 interface VoiceInterviewProps {
@@ -14,7 +14,7 @@ interface VoiceInterviewProps {
   onClose: () => void
 }
 
-export default function VoiceInterview({ company, role, sessionType, onClose }: VoiceInterviewProps) {
+function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInterviewProps) {
   const [showTranscript, setShowTranscript] = useState(false)
   const [muted, setMuted] = useState(false)
   const [transcript, setTranscript] = useState<{ role: string; text: string }[]>([])
@@ -28,8 +28,11 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       console.log('Disconnected from ElevenLabs')
     },
     onMessage: (message) => {
-      console.log('Message received:', message)
-      setTranscript(prev => [...prev, { role: message.source === 'user' ? 'User' : 'Assistant', text: message.message }])
+      // @ts-ignore - The message structure in the SDK might vary, but message.message is usually the text
+      const text = message.message || message.text
+      if (text) {
+        setTranscript(prev => [...prev, { role: message.source === 'user' ? 'User' : 'Assistant', text }])
+      }
     },
     onError: (error) => {
       console.error('ElevenLabs Error:', error)
@@ -47,12 +50,11 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     }
 
     try {
-      // Request microphone permission early
+      // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true })
       
       await conversation.startSession({
         agentId: agentId,
-        // Optional: dynamic variables to give the agent context
         dynamicVariables: {
           company_name: company,
           role_title: role,
@@ -75,9 +77,6 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
   // Waveform animation
   const bars = Array.from({ length: 40 })
-
-  const isThinking = status === 'connecting'
-  const isListening = status === 'connected' && !isSpeaking
 
   return (
     <motion.div 
@@ -278,5 +277,13 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
         AI is evaluating your tone, pacing, and content
       </div>
     </motion.div>
+  )
+}
+
+export default function VoiceInterview(props: VoiceInterviewProps) {
+  return (
+    <ConversationProvider>
+      <VoiceInterviewContent {...props} />
+    </ConversationProvider>
   )
 }
