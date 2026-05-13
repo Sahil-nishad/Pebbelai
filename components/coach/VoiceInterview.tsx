@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, X, Volume2, VolumeX, History, MessageSquare, Info, Loader2 } from 'lucide-react'
+import { Mic, MicOff, X, Volume2, VolumeX, MessageSquare, Info, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { useConversation, ConversationProvider } from '@elevenlabs/react'
+import { ConversationProvider, useConversation } from '@elevenlabs/react'
 import toast from 'react-hot-toast'
 
 interface VoiceInterviewProps {
@@ -14,86 +14,126 @@ interface VoiceInterviewProps {
   onClose: () => void
 }
 
+type SessionStatus = 'idle' | 'requesting-mic' | 'connecting' | 'connected' | 'error'
+
 function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInterviewProps) {
   const [showTranscript, setShowTranscript] = useState(false)
-  const [muted, setMuted] = useState(false)
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>('idle')
   const [transcript, setTranscript] = useState<{ role: string; text: string }[]>([])
+  const micStreamRef = useRef<MediaStream | null>(null)
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to ElevenLabs')
-      toast.success('Connected to Voice Agent')
+      setSessionStatus('connected')
+      toast.success('Connected to AI Interviewer!')
     },
     onDisconnect: () => {
-      console.log('Disconnected from ElevenLabs')
+      setSessionStatus('idle')
+      // Stop mic tracks on disconnect
+      micStreamRef.current?.getTracks().forEach(t => t.stop())
     },
     onMessage: (message) => {
-      // @ts-ignore - The message structure in the SDK might vary, but message.message is usually the text
+      // @ts-ignore
       const text = message.message || message.text
       if (text) {
-        setTranscript(prev => [...prev, { role: message.source === 'user' ? 'User' : 'Assistant', text }])
+        setTranscript(prev => [...prev, {
+          role: message.source === 'user' ? 'You' : 'AI Coach',
+          text
+        }])
       }
     },
     onError: (error) => {
       console.error('ElevenLabs Error:', error)
-      toast.error('Voice service error. Please check your Agent ID.')
+      setSessionStatus('error')
+      toast.error('Connection error. Check your Agent ID.')
     },
   })
 
-  const { status, isSpeaking } = conversation
+  const { isSpeaking } = conversation
 
-  const startInterview = useCallback(async () => {
+  // This is the ONLY function connected to the click event.
+  // getUserMedia MUST be the FIRST thing called — no awaits before it.
+  const handleStartClick = useCallback(() => {
     const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID
-    if (!agentId || agentId === 'your_agent_id_here') {
-      toast.error('ElevenLabs Agent ID not configured in .env.local')
+    if (!agentId) {
+      toast.error('Agent ID not configured.')
       return
     }
 
-    try {
-      // 1. Check if mediaDevices is available (requires HTTPS or localhost)
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error('Your browser does not support microphone access or you are not on a secure (HTTPS) connection.')
-        return
-      }
-
-      // 2. Request microphone permission explicitly
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true })
-      } catch (micErr) {
-        console.error('Microphone access denied:', micErr)
-        toast.error('Microphone access denied. Please enable it in your browser settings.')
-        return
-      }
-      
-      // 3. Start the ElevenLabs session
-      await conversation.startSession({
-        agentId: agentId,
-        dynamicVariables: {
-          company_name: company,
-          role_title: role,
-          interview_type: sessionType,
-        }
-      })
-    } catch (err) {
-      console.error('Failed to start conversation:', err)
-      toast.error('Failed to connect to ElevenLabs. Please check your Agent ID and internet connection.')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error('Microphone not supported on this browser/device.')
+      return
     }
+
+    setSessionStatus('requesting-mic')
+
+    // ✅ getUserMedia is called immediately from the user gesture — NO preceding await.
+    // This is the only way the browser will show the permission popup.
+    const micPromise = navigator.mediaDevices.getUserMedia({ audio: true })
+
+    micPromise
+      .then((stream) => {
+        micStreamRef.current = stream
+        setSessionStatus('connecting')
+
+        return conversation.startSession({
+          agentId,
+          dynamicVariables: {
+            company_name: company,
+            role_title: role,
+            interview_type: sessionType,
+          },
+        })
+      })
+      .catch((err) => {
+        console.error('Error:', err)
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
+        } else {
+          toast.error('Could not connect: ' + err.message)
+        }
+        setSessionStatus('error')
+      })
   }, [conversation, company, role, sessionType])
 
+  const handleStop = useCallback(async () => {
+    await conversation.endSession()
+    micStreamRef.current?.getTracks().forEach(t => t.stop())
+    micStreamRef.current = null
+    setSessionStatus('idle')
+  }, [conversation])
+
+  // Cleanup on unmount
   useEffect(() => {
-    // We no longer call startInterview here because browsers block 
-    // automatic microphone requests. It must be triggered by a user click.
     return () => {
       conversation.endSession()
+      micStreamRef.current?.getTracks().forEach(t => t.stop())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Waveform animation
   const bars = Array.from({ length: 40 })
+  const isActive = sessionStatus === 'connected'
+  const isLoading = sessionStatus === 'connecting' || sessionStatus === 'requesting-mic'
+
+  const statusLabel = {
+    idle: 'Ready to start',
+    'requesting-mic': 'Waiting for mic permission...',
+    connecting: 'Connecting to AI Coach...',
+    connected: isSpeaking ? 'Speaking' : 'Listening',
+    error: 'Connection failed',
+  }[sessionStatus]
+
+  const headingText = {
+    idle: 'Tap the mic to begin your interview.',
+    'requesting-mic': 'Allow microphone access in the popup.',
+    connecting: 'Waking up your AI Interviewer...',
+    connected: isSpeaking ? 'Your AI is speaking...' : "I'm listening. Go ahead.",
+    error: 'Something went wrong. Please try again.',
+  }[sessionStatus]
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -114,135 +154,125 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
             <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">{role} · {sessionType}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setMuted(!muted)}
-            className="p-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all"
-          >
-            {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
-          <button 
-            onClick={onClose}
-            className="p-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          className="p-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-4xl flex flex-col items-center justify-center gap-12 relative">
-        
-        {/* Status Text */}
-        <div className="text-center space-y-2">
+
+        {/* Status */}
+        <div className="text-center space-y-3">
           <AnimatePresence mode="wait">
             <motion.div
-              key={status}
+              key={sessionStatus}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               className="flex items-center justify-center gap-2"
             >
               <div className={`w-2 h-2 rounded-full ${
-                status === 'connected' ? (isSpeaking ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500 animate-pulse') : 
-                status === 'connecting' ? 'bg-amber-500 animate-pulse' : 'bg-slate-600'
+                isActive ? (isSpeaking ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500 animate-pulse') :
+                isLoading ? 'bg-amber-500 animate-pulse' :
+                sessionStatus === 'error' ? 'bg-red-500' : 'bg-slate-600'
               }`} />
               <span className="text-slate-300 font-medium tracking-wide uppercase text-xs">
-                {status === 'connected' ? (isSpeaking ? 'Speaking' : 'Listening') : 
-                 status === 'connecting' ? 'Connecting' : 'Disconnected'}
+                {statusLabel}
               </span>
             </motion.div>
           </AnimatePresence>
-          <h2 className="text-white text-2xl md:text-3xl font-semibold max-w-lg mx-auto leading-tight">
-            {isSpeaking ? "Analyzing your role-specific goals..." : 
-             status === 'connected' ? "I'm listening, go ahead." : 
-             status === 'connecting' ? "Waking up the AI Coach..." : "Ready to start?"}
-          </h2>
+          <AnimatePresence mode="wait">
+            <motion.h2
+              key={headingText}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="text-white text-2xl md:text-3xl font-semibold max-w-lg mx-auto leading-tight"
+            >
+              {headingText}
+            </motion.h2>
+          </AnimatePresence>
         </div>
 
-        {/* Voice Visualizer */}
+        {/* Waveform Visualizer */}
         <div className="relative w-full h-32 flex items-center justify-center gap-1">
           {bars.map((_, i) => (
             <motion.div
               key={i}
               animate={{
-                height: status === 'connected' 
-                  ? [20, Math.random() * (isSpeaking ? 80 : 40) + 20, 20] 
-                  : 12,
-                opacity: status === 'connected' ? 1 : 0.3
+                height: isActive
+                  ? [16, Math.random() * (isSpeaking ? 80 : 40) + 16, 16]
+                  : 10,
+                opacity: isActive ? 1 : 0.25,
               }}
               transition={{
-                duration: 0.5 + Math.random() * 0.5,
+                duration: 0.5 + Math.random() * 0.6,
                 repeat: Infinity,
-                ease: "easeInOut"
+                ease: 'easeInOut',
               }}
-              className={`w-1.5 rounded-full ${isSpeaking ? 'bg-blue-500' : status === 'connected' ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              className={`w-1.5 rounded-full ${
+                isSpeaking ? 'bg-blue-500' :
+                isActive ? 'bg-emerald-500' : 'bg-slate-700'
+              }`}
             />
           ))}
-          
-          {/* Central Orb */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <motion.div
-              animate={{
-                scale: status === 'connecting' ? [1, 1.2, 1] : 1,
-                opacity: status === 'connecting' ? [0.3, 0.6, 0.3] : 0
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-48 h-48 bg-emerald-500/20 rounded-full blur-2xl"
-            />
-          </div>
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <motion.div
+                animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-48 h-48 bg-emerald-500/20 rounded-full blur-2xl"
+              />
+            </div>
+          )}
         </div>
 
         {/* Controls */}
         <div className="flex flex-col items-center gap-8">
-          {status !== 'connected' && (
-            <button 
-              onClick={startInterview}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white text-sm font-semibold transition-all flex items-center gap-2"
-            >
-              <Mic className="w-4 h-4" />
-              Try Requesting Microphone Again
-            </button>
-          )}
-
           <div className="flex items-center gap-6">
-            <button className="flex flex-col items-center gap-2 group">
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-white transition-all">
-                <History className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 group-hover:text-slate-300">Tips</span>
-            </button>
+            {/* Main Mic Button */}
+            <div className="flex flex-col items-center gap-3">
+              <button
+                onClick={isActive ? handleStop : handleStartClick}
+                disabled={isLoading}
+                className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_60px_rgba(0,0,0,0.6)] border-4 disabled:opacity-70 disabled:cursor-wait ${
+                  isActive
+                    ? 'bg-emerald-600 border-emerald-400/50 scale-110 hover:bg-red-600 hover:border-red-400/50'
+                    : 'bg-white border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
+                ) : isActive ? (
+                  <Mic className="w-10 h-10 text-white" />
+                ) : (
+                  <MicOff className="w-10 h-10 text-slate-900" />
+                )}
+              </button>
+              <span className="text-slate-400 text-xs font-semibold uppercase tracking-widest">
+                {isActive ? 'Tap to end' : isLoading ? 'Please wait...' : 'Tap to start'}
+              </span>
+            </div>
 
-            <button 
-              onClick={() => status === 'connected' ? conversation.endSession() : startInterview()}
-              disabled={status === 'connecting'}
-              className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_50px_rgba(0,0,0,0.5)] border-4 ${
-                status === 'connected' 
-                  ? 'bg-emerald-600 border-emerald-400/50 scale-110' 
-                  : 'bg-white border-slate-200'
-              }`}
-            >
-              {status === 'connecting' ? (
-                <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
-              ) : status === 'connected' ? (
-                <Mic className="w-10 h-10 text-white" />
-              ) : (
-                <MicOff className="w-10 h-10 text-slate-900" />
-              )}
-            </button>
-
-            <button 
+            {/* Transcript button */}
+            <button
               onClick={() => setShowTranscript(!showTranscript)}
               className="flex flex-col items-center gap-2 group"
             >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                showTranscript 
-                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' 
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all border ${
+                showTranscript
+                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                   : 'bg-white/5 border-white/10 text-slate-400 group-hover:text-white'
-              } border`}>
+              }`}>
                 <MessageSquare className="w-5 h-5" />
               </div>
-              <span className={`text-[10px] uppercase tracking-widest font-bold ${showTranscript ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'}`}>Chat</span>
+              <span className={`text-[10px] uppercase tracking-widest font-bold ${
+                showTranscript ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'
+              }`}>Transcript</span>
             </button>
           </div>
         </div>
@@ -270,14 +300,14 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {transcript.length === 0 && (
                 <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">
-                  No messages yet. Start speaking to see the transcript.
+                  Start the interview to see the transcript here.
                 </div>
               )}
               {transcript.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === 'Assistant' ? 'justify-start' : 'justify-end'}`}>
+                <div key={i} className={`flex ${msg.role === 'AI Coach' ? 'justify-start' : 'justify-end'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                    msg.role === 'Assistant' 
-                      ? 'bg-white/5 text-slate-300' 
+                    msg.role === 'AI Coach'
+                      ? 'bg-white/5 text-slate-300'
                       : 'bg-emerald-600 text-white'
                   }`}>
                     <span className="block text-[10px] opacity-50 mb-1 uppercase font-bold">{msg.role}</span>
@@ -287,9 +317,9 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
               ))}
               {isSpeaking && (
                 <div className="flex gap-1 pl-2">
-                  <div className="w-1 h-1 rounded-full bg-blue-500 animate-bounce" />
-                  <div className="w-1 h-1 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]" />
-                  <div className="w-1 h-1 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]" />
                 </div>
               )}
             </div>
@@ -297,7 +327,7 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
         )}
       </AnimatePresence>
 
-      {/* Footer Info */}
+      {/* Footer */}
       <div className="absolute bottom-6 flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">
         <Info className="w-3 h-3" />
         AI is evaluating your tone, pacing, and content
