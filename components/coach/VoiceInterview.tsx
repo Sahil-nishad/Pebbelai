@@ -75,44 +75,75 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     return voices.find(v => v.lang.startsWith('en')) || voices[0] || null
   }, [])
 
-  // Speak text using browser TTS
+  // Speak text — tries Deepgram TTS first, falls back to browser TTS
   const speak = useCallback((text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      if (!synthRef.current || isMuted) { resolve(); return }
-      synthRef.current.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      const voice = getBestVoice()
-      if (voice) utterance.voice = voice
-      utterance.rate = 1.05
-      utterance.pitch = 1.0
-      utterance.volume = 1.0
-      utterance.onend = () => { setSessionStatus('listening'); resolve(); startListening() }
-      utterance.onerror = () => { setSessionStatus('listening'); resolve(); startListening() }
+    return new Promise(async (resolve) => {
+      if (isMuted) { resolve(); return }
       setSessionStatus('speaking')
-      synthRef.current.speak(utterance)
-    })
-  }, [isMuted, getBestVoice])
 
-  // Send message to coach API and speak the response
+      // Try Deepgram TTS for natural voice
+      try {
+        const res = await fetch('/api/coach/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ text: text.slice(0, 800) }),
+        })
+        if (res.ok && res.headers.get('content-type')?.includes('audio')) {
+          const audioBlob = await res.blob()
+          const audioUrl = URL.createObjectURL(audioBlob)
+          const audio = new Audio(audioUrl)
+          audio.onended = () => {
+            URL.revokeObjectURL(audioUrl)
+            setSessionStatus('listening')
+            resolve()
+            startListening()
+          }
+          audio.onerror = () => {
+            URL.revokeObjectURL(audioUrl)
+            // Fall back to browser TTS
+            speakWithBrowser(text, resolve)
+          }
+          audio.play()
+          return
+        }
+      } catch {}
+
+      // Fallback: browser SpeechSynthesis
+      speakWithBrowser(text, resolve)
+    })
+  }, [isMuted])
+
+  // Browser TTS fallback
+  const speakWithBrowser = useCallback((text: string, resolve: () => void) => {
+    if (!synthRef.current) { setSessionStatus('listening'); resolve(); startListening(); return }
+    synthRef.current.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    const voice = getBestVoice()
+    if (voice) utterance.voice = voice
+    utterance.rate = 1.05
+    utterance.pitch = 1.0
+    utterance.volume = 1.0
+    utterance.onend = () => { setSessionStatus('listening'); resolve(); startListening() }
+    utterance.onerror = () => { setSessionStatus('listening'); resolve(); startListening() }
+    synthRef.current.speak(utterance)
+  }, [getBestVoice])
+
+  // Send message to voice-optimized coach API and speak the response
   const sendToCoach = useCallback(async (userMessage: string) => {
     if (!sessionId || !userMessage.trim()) return
     setTranscript(prev => [...prev, { role: 'You', text: userMessage }])
     setSessionStatus('thinking')
     try {
-      const res = await authFetch('/api/coach/message', {
+      const res = await authFetch('/api/coach/voice-message', {
         method: 'POST',
         body: JSON.stringify({ sessionId, message: userMessage }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Failed')
-      const aiMessage = data.message || 'I could not generate a response. Please try again.'
+      const aiMessage = data.message || 'Could you repeat that?'
       setTranscript(prev => [...prev, { role: 'AI Coach', text: aiMessage }])
-      const cleanForSpeech = aiMessage
-        .replace(/\*\*(.*?)\*\*/g, '$1')
-        .replace(/^[-•*]\s+/gm, '')
-        .replace(/^(Best answer|What worked|Improve|Next step):/gim, '$1: ')
-        .trim()
-      await speak(cleanForSpeech)
+      await speak(aiMessage)
     } catch {
       toast.error('Failed to get AI response')
       setSessionStatus('listening')
@@ -196,8 +227,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       setTranscript([{ role: 'AI Coach', text: introMessage }])
       speechSynthesis.getVoices()
       await new Promise(resolve => setTimeout(resolve, 300))
-      const cleanIntro = introMessage.replace(/\*\*(.*?)\*\*/g, '$1').replace(/^[-•*]\s+/gm, '').trim()
-      await speak(cleanIntro)
+      await speak(introMessage)
     } catch (err: any) {
       toast.error(err?.message || 'Failed to start voice interview')
       setSessionStatus('error')
