@@ -33,6 +33,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const shouldRestartRef = useRef(false)
   const waveformIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const transcriptEndRef = useRef<HTMLDivElement>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -78,45 +80,55 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   // Speak text — tries Deepgram TTS first, falls back to browser TTS
   const speak = useCallback((text: string): Promise<void> => {
     return new Promise(async (resolve) => {
-      if (isMuted) { resolve(); return }
+      if (isMuted || !shouldRestartRef.current) { resolve(); return }
       setSessionStatus('speaking')
 
       // Try Deepgram TTS for natural voice
       try {
+        abortControllerRef.current = new AbortController()
         const res = await fetch('/api/coach/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify({ text: text.slice(0, 800) }),
+          signal: abortControllerRef.current.signal,
         })
         if (res.ok && res.headers.get('content-type')?.includes('audio')) {
           const audioBlob = await res.blob()
           const audioUrl = URL.createObjectURL(audioBlob)
           const audio = new Audio(audioUrl)
+          audioRef.current = audio
           audio.onended = () => {
             URL.revokeObjectURL(audioUrl)
-            setSessionStatus('listening')
-            resolve()
-            startListening()
+            audioRef.current = null
+            if (shouldRestartRef.current) {
+              setSessionStatus('listening')
+              resolve()
+              startListening()
+            } else { resolve() }
           }
           audio.onerror = () => {
             URL.revokeObjectURL(audioUrl)
-            // Fall back to browser TTS
+            audioRef.current = null
             speakWithBrowser(text, resolve)
           }
-          audio.play()
+          audio.play().catch(() => speakWithBrowser(text, resolve))
           return
         }
-      } catch {}
+      } catch (e: any) {
+        if (e?.name === 'AbortError') { resolve(); return }
+      }
 
       // Fallback: browser SpeechSynthesis
-      speakWithBrowser(text, resolve)
+      if (shouldRestartRef.current) {
+        speakWithBrowser(text, resolve)
+      } else { resolve() }
     })
   }, [isMuted])
 
   // Browser TTS fallback
   const speakWithBrowser = useCallback((text: string, resolve: () => void) => {
-    if (!synthRef.current) { setSessionStatus('listening'); resolve(); startListening(); return }
+    if (!synthRef.current || !shouldRestartRef.current) { resolve(); return }
     synthRef.current.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     const voice = getBestVoice()
@@ -124,8 +136,14 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     utterance.rate = 1.05
     utterance.pitch = 1.0
     utterance.volume = 1.0
-    utterance.onend = () => { setSessionStatus('listening'); resolve(); startListening() }
-    utterance.onerror = () => { setSessionStatus('listening'); resolve(); startListening() }
+    utterance.onend = () => {
+      if (shouldRestartRef.current) { setSessionStatus('listening'); resolve(); startListening() }
+      else { resolve() }
+    }
+    utterance.onerror = () => {
+      if (shouldRestartRef.current) { setSessionStatus('listening'); resolve(); startListening() }
+      else { resolve() }
+    }
     synthRef.current.speak(utterance)
   }, [getBestVoice])
 
@@ -173,7 +191,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const stopListening = useCallback(() => {
     shouldRestartRef.current = false
     isListeningRef.current = false
-    recognitionRef.current?.stop()
+    try { recognitionRef.current?.stop() } catch {}
   }, [])
 
   // Initialize session and start voice interview
@@ -228,7 +246,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
         if (silenceTimer) clearTimeout(silenceTimer)
         if (hasSpoken || interim) {
           silenceTimer = setTimeout(() => {
-            // User stopped talking for 2s — send what we have
+            // User stopped talking for 3.5s — send what we have
             if (accumulatedTranscript.trim()) {
               const message = accumulatedTranscript.trim()
               accumulatedTranscript = ''
@@ -238,7 +256,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
               isListeningRef.current = false
               sendToCoach(message)
             }
-          }, 2000)
+          }, 3500)
         }
       }
 
@@ -289,20 +307,51 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     }
   }, [company, role, sessionType, speak, sendToCoach, startListening])
 
-  // Stop the session
+  // Stop the session — kills everything immediately
   const handleStop = useCallback(() => {
     shouldRestartRef.current = false
-    stopListening()
-    synthRef.current?.cancel()
-    setSessionStatus('idle')
-  }, [stopListening])
+    isListeningRef.current = false
 
-  // Cleanup on unmount
+    // Stop speech recognition
+    try { recognitionRef.current?.abort() } catch {}
+    try { recognitionRef.current?.stop() } catch {}
+
+    // Stop browser TTS
+    synthRef.current?.cancel()
+
+    // Stop Deepgram audio playback
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+      audioRef.current = null
+    }
+
+    // Abort any in-flight fetch requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+
+    setSessionStatus('idle')
+    setCurrentSpeech('')
+  }, [])
+
+  // Cleanup on unmount — stop everything immediately
   useEffect(() => {
     return () => {
       shouldRestartRef.current = false
-      recognitionRef.current?.abort()
+      isListeningRef.current = false
+      try { recognitionRef.current?.abort() } catch {}
       synthRef.current?.cancel()
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
+        audioRef.current = null
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
     }
   }, [])
 
