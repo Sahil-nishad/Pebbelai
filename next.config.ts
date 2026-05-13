@@ -26,11 +26,7 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
-          {
-            key: "Permissions-Policy",
-            // Allow microphone for the AI Voice Interview Coach (ElevenLabs)
-            value: "camera=(), microphone=(self), geolocation=()",
-          },
+
         ],
       },
     ];
