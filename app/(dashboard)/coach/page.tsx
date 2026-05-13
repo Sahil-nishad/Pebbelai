@@ -732,43 +732,6 @@ export default function CoachPage() {
                 </div>
               </div>
 
-              {/* ── Past Sessions ── */}
-              {sessions.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Recent Sessions</h3>
-                    <button onClick={() => setHistoryOpen(true)} className="text-[12px] font-semibold text-[#0A6A47] hover:text-[#085c3d] transition-colors flex items-center gap-1">
-                      View all ({sessions.length}) <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {sessions.slice(0, 3).map(session => (
-                      <button
-                        key={session.id}
-                        onClick={() => loadSession(session)}
-                        className="w-full flex items-center gap-3 p-3.5 bg-white rounded-xl border border-slate-100 hover:border-[#0A6A47]/30 hover:shadow-sm transition-all text-left group"
-                      >
-                        <div className="w-9 h-9 rounded-xl bg-[#0A6A47]/10 flex items-center justify-center text-sm font-black text-[#0A6A47] flex-shrink-0">
-                          {session.company.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-800 group-hover:text-[#0A6A47] transition-colors truncate">{session.company}</p>
-                          <p className="text-xs text-slate-400 truncate">{session.role || 'No role specified'}</p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${typeColor[session.session_type as SessionType] || 'text-slate-600 bg-slate-100'}`}>
-                            {session.session_type}
-                          </span>
-                          <span className="text-[10px] text-slate-300">
-                            {new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
             </div>
           </div>
 
