@@ -193,45 +193,57 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-6">
-          <button className="flex flex-col items-center gap-2 group">
-            <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-white transition-all">
-              <History className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 group-hover:text-slate-300">Tips</span>
-          </button>
+        <div className="flex flex-col items-center gap-8">
+          {status !== 'connected' && (
+            <button 
+              onClick={startInterview}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white text-sm font-semibold transition-all flex items-center gap-2"
+            >
+              <Mic className="w-4 h-4" />
+              Try Requesting Microphone Again
+            </button>
+          )}
 
-          <button 
-            onClick={() => status === 'connected' ? conversation.endSession() : startInterview()}
-            disabled={status === 'connecting'}
-            className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_50px_rgba(0,0,0,0.5)] border-4 ${
-              status === 'connected' 
-                ? 'bg-emerald-600 border-emerald-400/50 scale-110' 
-                : 'bg-white border-slate-200'
-            }`}
-          >
-            {status === 'connecting' ? (
-              <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
-            ) : status === 'connected' ? (
-              <Mic className="w-10 h-10 text-white" />
-            ) : (
-              <MicOff className="w-10 h-10 text-slate-900" />
-            )}
-          </button>
+          <div className="flex items-center gap-6">
+            <button className="flex flex-col items-center gap-2 group">
+              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-white transition-all">
+                <History className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 group-hover:text-slate-300">Tips</span>
+            </button>
 
-          <button 
-            onClick={() => setShowTranscript(!showTranscript)}
-            className="flex flex-col items-center gap-2 group"
-          >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-              showTranscript 
-                ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' 
-                : 'bg-white/5 border-white/10 text-slate-400 group-hover:text-white'
-            } border`}>
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <span className={`text-[10px] uppercase tracking-widest font-bold ${showTranscript ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'}`}>Chat</span>
-          </button>
+            <button 
+              onClick={() => status === 'connected' ? conversation.endSession() : startInterview()}
+              disabled={status === 'connecting'}
+              className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_50px_rgba(0,0,0,0.5)] border-4 ${
+                status === 'connected' 
+                  ? 'bg-emerald-600 border-emerald-400/50 scale-110' 
+                  : 'bg-white border-slate-200'
+              }`}
+            >
+              {status === 'connecting' ? (
+                <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
+              ) : status === 'connected' ? (
+                <Mic className="w-10 h-10 text-white" />
+              ) : (
+                <MicOff className="w-10 h-10 text-slate-900" />
+              )}
+            </button>
+
+            <button 
+              onClick={() => setShowTranscript(!showTranscript)}
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                showTranscript 
+                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' 
+                  : 'bg-white/5 border-white/10 text-slate-400 group-hover:text-white'
+              } border`}>
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <span className={`text-[10px] uppercase tracking-widest font-bold ${showTranscript ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'}`}>Chat</span>
+            </button>
+          </div>
         </div>
       </div>
 
