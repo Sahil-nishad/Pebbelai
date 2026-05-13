@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, X, MessageSquare, Volume2, VolumeX, Loader2 } from 'lucide-react'
-import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { authFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -290,84 +289,89 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 40%, #091a2e 100%)' }}
+      className="fixed inset-0 z-[9999] flex flex-col bg-white overflow-hidden"
     >
-      {/* Background ambient glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl" />
-      </div>
+      {/* Subtle green tint top glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-48 bg-[#0A6A47]/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 p-5 flex items-center justify-between z-10">
+      <div className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-            <Image src="/pebelai-mark.svg" alt="PebelAI" width={18} height={18} />
+          <div className="w-9 h-9 rounded-xl bg-[#0A6A47]/10 flex items-center justify-center font-black text-[#0A6A47] text-sm">
+            {company.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h3 className="text-white font-bold text-sm">{company}</h3>
-            <p className="text-white/40 text-[11px] font-medium uppercase tracking-wider">AI · {sessionType}</p>
+            <h3 className="text-slate-900 font-bold text-sm">{company}</h3>
+            <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wider">AI · {sessionType}</p>
           </div>
         </div>
         <button
           onClick={() => { handleStop(); onClose() }}
-          className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-all"
+          className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-all"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center space-y-8">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-8 px-6">
+
         {/* Status heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center space-y-3"
-        >
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={sessionStatus}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="text-white text-xl md:text-2xl font-semibold max-w-md mx-auto leading-snug px-4"
-            >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={sessionStatus + currentSpeech.slice(0, 20)}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="text-center space-y-2"
+          >
+            {/* Status pill */}
+            <div className="flex items-center justify-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                isListening ? 'bg-[#0A6A47] animate-pulse' :
+                isSpeaking ? 'bg-emerald-500 animate-pulse' :
+                isThinking ? 'bg-amber-500 animate-pulse' :
+                sessionStatus === 'connecting' ? 'bg-slate-400 animate-pulse' :
+                sessionStatus === 'error' ? 'bg-red-500' : 'bg-slate-300'
+              }`} />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                {getStatusText()}
+              </span>
+            </div>
+            {/* Main heading */}
+            <p className="text-slate-900 text-xl md:text-2xl font-semibold max-w-md mx-auto leading-snug">
               {headingText}
-            </motion.p>
-          </AnimatePresence>
-        </motion.div>
+            </p>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Voice Orb */}
         <motion.div
-          className="relative w-72 h-72 md:w-96 md:h-96"
+          className="relative w-64 h-64 md:w-80 md:h-80"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
+          transition={{ delay: 0.15, duration: 0.4 }}
         >
           <VoiceOrb
             enableVoiceControl={isListening}
             className="rounded-full overflow-hidden"
-            hue={isListening ? 180 : isThinking ? 60 : isSpeaking ? 120 : 0}
+            hue={isListening ? 150 : isThinking ? 45 : isSpeaking ? 120 : 150}
           />
           {/* Pulse rings when listening */}
           <AnimatePresence>
             {isListening && (
               <>
                 <motion.div
-                  className="absolute inset-0 rounded-full border-2 border-blue-500/30"
+                  className="absolute inset-0 rounded-full border-2 border-[#0A6A47]/25"
                   initial={{ scale: 1, opacity: 0.6 }}
-                  animate={{ scale: 1.5, opacity: 0 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
+                  animate={{ scale: 1.45, opacity: 0 }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
                 />
                 <motion.div
-                  className="absolute inset-0 rounded-full border-2 border-blue-500/20"
+                  className="absolute inset-0 rounded-full border border-[#0A6A47]/15"
                   initial={{ scale: 1, opacity: 0.4 }}
-                  animate={{ scale: 2, opacity: 0 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
+                  animate={{ scale: 1.9, opacity: 0 }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut', delay: 0.55 }}
                 />
               </>
             )}
@@ -377,19 +381,19 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
             <AnimatePresence mode="wait">
               {isThinking ? (
                 <motion.div key="thinking" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                  <Loader2 className="w-16 h-16 text-yellow-500 animate-spin" />
+                  <Loader2 className="w-14 h-14 text-amber-500 animate-spin" />
                 </motion.div>
               ) : isSpeaking ? (
                 <motion.div key="speaking" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                  <Volume2 className="w-16 h-16 text-green-500" />
+                  <Volume2 className="w-14 h-14 text-[#0A6A47]" />
                 </motion.div>
               ) : isListening ? (
                 <motion.div key="listening" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                  <Mic className="w-16 h-16 text-blue-500" />
+                  <Mic className="w-14 h-14 text-[#0A6A47]" />
                 </motion.div>
               ) : (
                 <motion.div key="idle" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                  <MicOff className="w-16 h-16 text-white/30" />
+                  <MicOff className="w-14 h-14 text-slate-300" />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -397,80 +401,85 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
         </motion.div>
 
         {/* Waveform */}
-        <div className="flex items-center justify-center space-x-1 h-16">
+        <div className="flex items-center justify-center gap-0.5 h-12">
           {waveformData.map((height, index) => (
             <motion.div
               key={index}
               className={cn(
-                'w-1 rounded-full transition-colors duration-300',
-                isListening ? 'bg-blue-500' : isThinking ? 'bg-yellow-500' : isSpeaking ? 'bg-green-500' : 'bg-white/10'
+                'w-1 rounded-full',
+                isListening ? 'bg-[#0A6A47]' :
+                isThinking ? 'bg-amber-400' :
+                isSpeaking ? 'bg-emerald-500' : 'bg-slate-200'
               )}
               animate={{
-                height: `${Math.max(4, height * 0.6)}px`,
-                opacity: isListening || isSpeaking ? 1 : 0.3,
+                height: `${Math.max(3, height * 0.45)}px`,
+                opacity: isListening || isSpeaking ? 1 : 0.4,
               }}
               transition={{ duration: 0.1, ease: 'easeOut' }}
             />
           ))}
         </div>
 
-        {/* Status text */}
-        <div className="text-center space-y-2">
-          <motion.p
-            className={cn('text-lg font-medium transition-colors', getStatusColor())}
-            animate={{ opacity: [1, 0.7, 1] }}
-            transition={{ duration: 2, repeat: isActive ? Infinity : 0 }}
-          >
-            {getStatusText()}
-          </motion.p>
-        </div>
-
         {/* Controls */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-end gap-8">
+          {/* Sound toggle */}
+          <button
+            onClick={() => { setIsMuted(!isMuted); if (!isMuted) synthRef.current?.cancel() }}
+            className="flex flex-col items-center gap-2 group"
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+              isMuted
+                ? 'bg-red-50 border-red-200 text-red-500'
+                : 'bg-slate-50 border-slate-200 text-slate-400 group-hover:border-[#0A6A47]/30 group-hover:text-[#0A6A47]'
+            }`}>
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Sound</span>
+          </button>
+
           {/* Main Mic Button */}
-          <div className="flex flex-col items-center gap-2.5">
+          <div className="flex flex-col items-center gap-3">
             <button
               onClick={isActive ? handleStop : handleStart}
               disabled={sessionStatus === 'connecting'}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 border-[3px] disabled:opacity-60 disabled:cursor-wait ${
+              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg disabled:opacity-60 disabled:cursor-wait ${
                 isActive
-                  ? 'bg-emerald-500/20 border-emerald-400/50 hover:bg-red-500/20 hover:border-red-400/50'
-                  : 'bg-white border-white/80 hover:bg-white/90'
+                  ? 'bg-[#0A6A47] hover:bg-[#085c3d] shadow-[#0A6A47]/25'
+                  : 'bg-[#0A6A47] hover:bg-[#085c3d] shadow-[#0A6A47]/25'
               }`}
             >
               {sessionStatus === 'connecting' ? (
-                <Loader2 className="w-8 h-8 text-slate-800 animate-spin" />
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
               ) : isActive ? (
-                <Mic className="w-8 h-8 text-emerald-400" />
+                <Mic className="w-8 h-8 text-white" />
               ) : (
-                <MicOff className="w-8 h-8 text-slate-800" />
+                <MicOff className="w-8 h-8 text-white" />
               )}
             </button>
-            <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
               {isActive ? 'Tap to end' : sessionStatus === 'connecting' ? 'Wait...' : 'Tap to start'}
             </span>
           </div>
 
-          {/* Sound toggle */}
-          <button onClick={() => { setIsMuted(!isMuted); if (!isMuted) synthRef.current?.cancel() }} className="flex flex-col items-center gap-2 group">
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center border transition-all ${
-              isMuted ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white/40 group-hover:text-white/70'
-            }`}>
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </div>
-            <span className="text-white/30 text-[9px] uppercase tracking-widest font-bold">Sound</span>
-          </button>
-
           {/* Transcript toggle */}
           <button onClick={() => setShowTranscript(!showTranscript)} className="flex flex-col items-center gap-2 group">
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center border transition-all ${
-              showTranscript ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40 group-hover:text-white/70'
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+              showTranscript
+                ? 'bg-[#0A6A47]/10 border-[#0A6A47]/30 text-[#0A6A47]'
+                : 'bg-slate-50 border-slate-200 text-slate-400 group-hover:border-[#0A6A47]/30 group-hover:text-[#0A6A47]'
             }`}>
-              <MessageSquare className="w-4 h-4" />
+              <MessageSquare className="w-5 h-5" />
             </div>
-            <span className="text-white/30 text-[9px] uppercase tracking-widest font-bold">Transcript</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Transcript</span>
           </button>
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="relative z-10 py-3 flex items-center justify-center">
+        <span className="text-[10px] font-medium text-slate-300 uppercase tracking-widest">
+          Powered by Web Speech API + Groq AI
+        </span>
       </div>
 
       {/* Transcript Drawer */}
@@ -481,29 +490,31 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-            className="absolute bottom-0 left-0 right-0 h-[45%] bg-[#0d1a2d]/95 backdrop-blur-xl border-t border-white/5 rounded-t-3xl flex flex-col z-20"
+            className="absolute bottom-0 left-0 right-0 h-[50%] bg-white border-t border-slate-100 rounded-t-3xl flex flex-col z-20 shadow-2xl"
           >
-            <div className="px-6 pt-5 pb-3 border-b border-white/5 flex items-center justify-between">
-              <h4 className="text-white/80 font-bold text-sm flex items-center gap-2">
-                <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="px-6 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+              <h4 className="text-slate-800 font-bold text-sm flex items-center gap-2">
+                <MessageSquare className="w-3.5 h-3.5 text-[#0A6A47]" />
                 Live Transcript
               </h4>
-              <button onClick={() => setShowTranscript(false)} className="text-white/30 hover:text-white/60 transition-colors">
+              <button onClick={() => setShowTranscript(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
               {transcript.length === 0 && (
-                <div className="h-full flex items-center justify-center text-white/20 text-sm italic">
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
                   Start the interview to see the transcript here.
                 </div>
               )}
               {transcript.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'AI Coach' ? 'justify-start' : 'justify-end'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                    msg.role === 'AI Coach' ? 'bg-white/5 text-white/70' : 'bg-emerald-600/80 text-white'
+                    msg.role === 'AI Coach'
+                      ? 'bg-slate-50 border border-slate-100 text-slate-700'
+                      : 'bg-[#0A6A47] text-white'
                   }`}>
-                    <span className="block text-[9px] opacity-40 mb-1 uppercase font-bold tracking-wider">{msg.role}</span>
+                    <span className="block text-[9px] opacity-50 mb-1 uppercase font-bold tracking-wider">{msg.role}</span>
                     {msg.text}
                   </div>
                 </div>
@@ -520,11 +531,6 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Footer */}
-      <div className="absolute bottom-5 flex items-center gap-2 text-white/20 text-[9px] font-bold uppercase tracking-[0.2em]">
-        Powered by Web Speech API + Groq AI
-      </div>
     </motion.div>,
     document.body
   )
