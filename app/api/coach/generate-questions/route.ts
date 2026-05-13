@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, unauthorized } from '@/lib/auth'
-import { getGroqClient, hasGroqKey, MODEL } from '@/lib/groq'
+import { chatCompletion, hasGroqKey, hasGeminiKey } from '@/lib/groq'
 import { getClientIp, rateLimit, readJsonObject } from '@/lib/api-validation'
 
 export async function POST(req: NextRequest) {
@@ -38,19 +38,15 @@ Return ONLY a valid JSON array with no extra text:
 ]
 Ensure exactly 10 items.`
 
-  if (!hasGroqKey()) {
+  if (!hasGroqKey() && !hasGeminiKey()) {
     return NextResponse.json({ error: 'AI service is not configured.' }, { status: 503 })
   }
 
   try {
-    const groq = getGroqClient()
-    const response = await groq.chat.completions.create({
-      model: MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.6,
-    })
-
-    const raw = response.choices[0].message.content || '[]'
+    const raw = await chatCompletion(
+      [{ role: 'user', content: prompt }],
+      { temperature: 0.6 }
+    )
     const jsonMatch = raw.match(/\[[\s\S]*\]/)
     const parsed: { question: string; answer: string; category: string }[] = JSON.parse(jsonMatch ? jsonMatch[0] : raw)
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, unauthorized } from '@/lib/auth'
-import { getGroqClient, hasGroqKey, MODEL } from '@/lib/groq'
+import { chatCompletion, hasGroqKey, hasGeminiKey } from '@/lib/groq'
 import { getCoachSession, updateCoachSession } from '@/lib/coach-session-store'
 import { isMissingTableError } from '@/lib/supabase'
 
@@ -60,18 +60,11 @@ Example bad response (TOO LONG): "Great answer! Here are some things that worked
   let assistantMessage = "Sorry, I'm having a moment. Could you repeat that?"
 
   try {
-    if (!hasGroqKey()) throw new Error('AI service is not configured.')
-    const groq = getGroqClient()
-    const response = await groq.chat.completions.create({
-      model: MODEL,
-      messages: messages_for_llm.map((m: { role: string; content: string }) => ({
-        role: m.role as 'system' | 'user' | 'assistant',
-        content: m.content,
-      })),
-      temperature: 0.5,
-      max_tokens: 150, // Force short responses
-    })
-    assistantMessage = response.choices[0].message.content || assistantMessage
+    if (!hasGroqKey() && !hasGeminiKey()) throw new Error('AI service is not configured.')
+    assistantMessage = await chatCompletion(
+      messages_for_llm,
+      { temperature: 0.5, maxTokens: 150 }
+    ) || assistantMessage
   } catch {
     // Keep fallback
   }

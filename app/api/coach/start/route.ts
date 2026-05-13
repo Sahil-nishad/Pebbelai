@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, unauthorized } from '@/lib/auth'
-import { getGroqClient, hasGroqKey, MODEL } from '@/lib/groq'
+import { chatCompletion, hasGroqKey, hasGeminiKey } from '@/lib/groq'
 import { createCoachSession } from '@/lib/coach-session-store'
 import { isMissingTableError } from '@/lib/supabase'
 
@@ -25,29 +25,14 @@ export async function POST(req: NextRequest) {
 
   let questions: unknown[] = []
   try {
-    if (!hasGroqKey()) throw new Error('AI service is not configured.')
-    const groq = getGroqClient()
-    const questionsResponse = await groq.chat.completions.create({
-      model: MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: `Generate 10 interview questions for ${role} at ${company}. Session type: ${sessionType}. ${jobDescription ? `Job description: ${jobDescription.slice(0, 500)}` : ''}. Return ONLY valid JSON array: [{"q":"question","category":"behavioral","difficulty":"medium","tip":"what interviewer looks for"}]`,
-        },
-      ],
-      temperature: 0.7,
-    })
-
-    questions = JSON.parse(questionsResponse.choices[0].message.content || '[]')
+    if (!hasGroqKey() && !hasGeminiKey()) throw new Error('AI service is not configured.')
+    const raw = await chatCompletion(
+      [{ role: 'user', content: `Generate 10 interview questions for ${role} at ${company}. Session type: ${sessionType}. ${jobDescription ? `Job description: ${jobDescription.slice(0, 500)}` : ''}. Return ONLY valid JSON array: [{"q":"question","category":"behavioral","difficulty":"medium","tip":"what interviewer looks for"}]` }],
+      { temperature: 0.7 }
+    )
+    questions = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || raw)
   } catch {
-    questions = [
-      {
-        q: 'Tell me about yourself and why you are interested in this role.',
-        category: sessionType,
-        difficulty: 'easy',
-        tip: 'Be concise and relevant',
-      },
-    ]
+    questions = [{ q: 'Tell me about yourself and why you are interested in this role.', category: sessionType, difficulty: 'easy', tip: 'Be concise and relevant' }]
   }
 
   const systemMessage = {
@@ -92,14 +77,11 @@ Start by briefly introducing yourself, then ask the first question in a friendly
 - Next step: Answer in 3 to 5 sentences, then I will help sharpen it.`
 
   try {
-    if (!hasGroqKey()) throw new Error('AI service is not configured.')
-    const groq = getGroqClient()
-    const intro = await groq.chat.completions.create({
-      model: MODEL,
-      messages: [systemMessage as { role: 'system'; content: string }],
-      temperature: 0.4,
-    })
-    assistantMessage = intro.choices[0].message.content || assistantMessage
+    if (!hasGroqKey() && !hasGeminiKey()) throw new Error('AI service is not configured.')
+    assistantMessage = await chatCompletion(
+      [systemMessage],
+      { temperature: 0.4 }
+    ) || assistantMessage
   } catch {
     // Keep the session usable even if the model call blips.
   }
