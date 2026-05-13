@@ -25,6 +25,14 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
       console.log('[VoiceInterview] Connected to ElevenLabs agent')
       setSessionStatus('connected')
       toast.success('Connected to AI Interviewer!')
+      // Send interview context as a contextual update after connection
+      try {
+        conversation.sendContextualUpdate(
+          `The candidate is interviewing for the position of ${role || 'a role'} at ${company}. This is a ${sessionType} interview. Please conduct the interview accordingly.`
+        )
+      } catch (e) {
+        console.warn('[VoiceInterview] Could not send contextual update:', e)
+      }
     },
     onDisconnect: (details) => {
       console.log('[VoiceInterview] Disconnected. Details:', details)
@@ -75,16 +83,10 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
     }
 
     try {
-      // Use dynamicVariables (recommended) instead of overrides
-      // Overrides require explicit enablement in ElevenLabs dashboard security settings
-      await conversation.startSession({
-        agentId,
-        dynamicVariables: {
-          company_name: company,
-          role_title: role,
-          interview_type: sessionType,
-        },
-      })
+      // Start session with only agentId — no overrides or dynamicVariables
+      // The agent's prompt on ElevenLabs dashboard handles the interview behavior.
+      // Context is injected via contextual update after connection.
+      await conversation.startSession({ agentId })
       // Connection success is handled by onConnect callback
     } catch (err: any) {
       console.error('[VoiceInterview] Error starting session:', err)
