@@ -20,17 +20,17 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
   const [showTranscript, setShowTranscript] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('idle')
   const [transcript, setTranscript] = useState<{ role: string; text: string }[]>([])
-  const micStreamRef = useRef<MediaStream | null>(null)
-
   const conversation = useConversation({
     onConnect: () => {
       setSessionStatus('connected')
       toast.success('Connected to AI Interviewer!')
     },
-    onDisconnect: () => {
+    onDisconnect: (details) => {
+      console.log('Disconnected from ElevenLabs. Details:', details)
       setSessionStatus('idle')
-      // Stop mic tracks on disconnect
-      micStreamRef.current?.getTracks().forEach(t => t.stop())
+      if (details?.reason) {
+        toast.error(`Disconnected: ${details.reason}`)
+      }
     },
     onMessage: (message) => {
       // @ts-ignore
@@ -51,50 +51,47 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
 
   const { isSpeaking } = conversation
 
-  // This is the ONLY function connected to the click event.
-  // getUserMedia MUST be the FIRST thing called — no awaits before it.
-  const handleStartClick = useCallback(() => {
+  const handleStartClick = useCallback(async () => {
     const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID
     if (!agentId) {
       toast.error('Agent ID not configured.')
       return
     }
 
-    if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error('Microphone not supported on this browser/device.')
-      return
-    }
+    setSessionStatus('connecting')
 
-    setSessionStatus('requesting-mic')
-
-    // ✅ getUserMedia is called immediately from the user gesture — NO preceding await.
-    // This is the only way the browser will show the permission popup.
-    const micPromise = navigator.mediaDevices.getUserMedia({ audio: true })
-
-    micPromise
-      .then((stream) => {
-        micStreamRef.current = stream
-        setSessionStatus('connecting')
-
-        // Dynamic variables must be registered in ElevenLabs dashboard "Variables" tab.
-        // Omitting here to prevent immediate disconnect when not registered.
-        return conversation.startSession({ agentId })
-      })
-      .catch((err) => {
-        console.error('Error:', err)
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
-        } else {
-          toast.error('Could not connect: ' + err.message)
+    try {
+      // Let the ElevenLabs SDK handle the microphone permission and connection.
+      await conversation.startSession({
+        agentId,
+        dynamicVariables: {
+          company_name: company,
+          role_title: role,
+          interview_type: sessionType,
+        },
+        overrides: {
+          agent: {
+            prompt: {
+              prompt: `You are an AI Interview Coach conducting a ${sessionType} interview for the position of ${role} at ${company}. You must evaluate their skills, ask tough relevant questions, and provide feedback at the end.`,
+            },
+            firstMessage: `Hello! I am your AI Coach. We are doing a ${sessionType} interview for the ${role} position at ${company}. Are you ready to begin?`
+          }
         }
-        setSessionStatus('error')
       })
+      // Connection success is handled by onConnect callback
+    } catch (err: any) {
+      console.error('Error starting session:', err)
+      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError' || err?.message?.includes('Permission denied')) {
+        toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
+      } else {
+        toast.error('Could not connect: ' + (err?.message || 'Unknown error'))
+      }
+      setSessionStatus('error')
+    }
   }, [conversation, company, role, sessionType])
 
   const handleStop = useCallback(async () => {
     await conversation.endSession()
-    micStreamRef.current?.getTracks().forEach(t => t.stop())
-    micStreamRef.current = null
     setSessionStatus('idle')
   }, [conversation])
 
@@ -102,7 +99,6 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
   useEffect(() => {
     return () => {
       conversation.endSession()
-      micStreamRef.current?.getTracks().forEach(t => t.stop())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
