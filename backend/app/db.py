@@ -1,22 +1,23 @@
 from collections.abc import Generator
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-
 from app.config import get_settings
-
-settings = get_settings()
 
 
 class Base(DeclarativeBase):
     pass
 
 
-engine_kwargs = {"pool_pre_ping": True}
-if settings.database_url.startswith("sqlite"):
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
+def _make_engine():
+    settings = get_settings()
+    url = settings.pg_url
+    kwargs = {"pool_pre_ping": True}
+    if url.startswith("sqlite"):
+        kwargs["connect_args"] = {"check_same_thread": False}
+    return create_engine(url, **kwargs)
 
-engine = create_engine(settings.database_url, **engine_kwargs)
+
+engine = _make_engine()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
 

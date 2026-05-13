@@ -1,133 +1,84 @@
+"""
+Career module SQLAlchemy models.
+All tables use TEXT primary keys (UUID strings) so they work with both
+SQLite (local dev) and Postgres (production).
+"""
+import uuid
 from datetime import datetime
-from typing import Optional
-
-from sqlalchemy import JSON, Boolean, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
-
+from sqlalchemy import Column, Text, DateTime, Integer, Float, Boolean, JSON
 from app.db import Base
+
+
+def _now():
+    return datetime.utcnow()
+
+
+def _uuid():
+    return str(uuid.uuid4())
 
 
 class Resume(Base):
     __tablename__ = "career_resumes"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(255), index=True)
-    filename: Mapped[str] = mapped_column(String(255))
-    original_name: Mapped[str] = mapped_column(String(255))
-    file_path: Mapped[str] = mapped_column(String(512))
-    file_size: Mapped[int] = mapped_column(Integer)
-    mime_type: Mapped[str] = mapped_column(String(50))
+    id = Column(Text, primary_key=True, default=_uuid)
+    user_id = Column(Text, nullable=False, index=True)
+    original_name = Column(Text, nullable=False)
+    filename = Column(Text, nullable=False)          # stored filename on disk
+    file_size = Column(Integer, nullable=True)
+    mime_type = Column(Text, nullable=True)
+    label = Column(Text, nullable=True)              # e.g. "Software Engineer v2"
+    is_primary = Column(Boolean, default=False)
 
-    # Parsed data (stored as JSON)
-    parsed_skills: Mapped[Optional[list]] = mapped_column(JSON, default=list)
-    parsed_experience: Mapped[Optional[list]] = mapped_column(JSON, default=list)
-    parsed_education: Mapped[Optional[list]] = mapped_column(JSON, default=list)
-    parsed_projects: Mapped[Optional[list]] = mapped_column(JSON, default=list)
-    parsed_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # AI-parsed fields
+    parsed_skills = Column(JSON, default=list)
+    parsed_experience = Column(JSON, default=list)
+    parsed_education = Column(JSON, default=list)
+    parsed_summary = Column(Text, default="")
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
-    )
-
-
-class GmailConnection(Base):
-    __tablename__ = "career_gmail_connections"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(255), index=True, unique=True)
-
-    email: Mapped[str] = mapped_column(String(255))
-    encrypted_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    encrypted_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    token_expiry: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    scopes: Mapped[Optional[list]] = mapped_column(JSON, default=list)
-
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    # Daily limits
-    emails_sent_today: Mapped[int] = mapped_column(Integer, default=0)
-    daily_limit: Mapped[int] = mapped_column(Integer, default=25)
-    last_email_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
 
 
 class Recruiter(Base):
     __tablename__ = "career_recruiters"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(255), index=True)
-
-    name: Mapped[str] = mapped_column(String(255))
-    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    company: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    linkedin_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-
-    # Metadata
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    id = Column(Text, primary_key=True, default=_uuid)
+    user_id = Column(Text, nullable=False, index=True)
+    name = Column(Text, nullable=False)
+    title = Column(Text, nullable=True)
+    company = Column(Text, nullable=True)
+    linkedin_url = Column(Text, nullable=True)
+    email = Column(Text, nullable=True)
+    phone = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+    is_contacted = Column(Boolean, default=False)
+    last_contacted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
 
 
-class RecruiterPost(Base):
-    __tablename__ = "career_recruiter_posts"
+class GmailConnection(Base):
+    __tablename__ = "career_gmail_connections"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    recruiter_id: Mapped[str] = mapped_column(String(36), index=True)
-    user_id: Mapped[str] = mapped_column(String(255), index=True)
-
-    # Post content
-    title: Mapped[str] = mapped_column(String(255))
-    company: Mapped[str] = mapped_column(String(255))
-    content: Mapped[str] = mapped_column(Text)
-    post_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-
-    # Extracted data
-    location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    required_skills: Mapped[Optional[list]] = mapped_column(JSON, default=list)
-    experience_level: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    salary_range: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-
-    # ATS matching
-    ats_match_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-
-    # Status
-    is_saved: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    id = Column(Text, primary_key=True, default=_uuid)
+    user_id = Column(Text, nullable=False, unique=True, index=True)
+    gmail_address = Column(Text, nullable=False)
+    access_token = Column(Text, nullable=True)       # encrypted
+    refresh_token = Column(Text, nullable=True)      # encrypted
+    token_expiry = Column(DateTime, nullable=True)
+    scopes = Column(JSON, default=list)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
 
 
-class Application(Base):
-    __tablename__ = "career_applications"
+class HiringSearch(Base):
+    __tablename__ = "career_hiring_searches"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(255), index=True)
-    recruiter_post_id: Mapped[str] = mapped_column(String(36), index=True)
-    resume_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
-
-    # Email content
-    subject: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, sent, replied, rejected, no_response
-
-    # Tracking
-    ats_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    replied_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    # Follow-up
-    follow_up_sent: Mapped[bool] = mapped_column(Boolean, default=False)
-    follow_up_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    id = Column(Text, primary_key=True, default=_uuid)
+    user_id = Column(Text, nullable=False, index=True)
+    query = Column(Text, nullable=False)             # e.g. "senior python engineer remote"
+    location = Column(Text, nullable=True)
+    results = Column(JSON, default=list)             # list of job dicts
+    result_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=_now)

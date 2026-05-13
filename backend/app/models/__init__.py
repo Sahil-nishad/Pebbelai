@@ -1,2 +1,3 @@
-# Models - import your models here
-from app.models.careers import Resume, GmailConnection, Recruiter, RecruiterPost, Application
+from app.models.careers import Resume, Recruiter, GmailConnection, HiringSearch
+
+__all__ = ["Resume", "Recruiter", "GmailConnection", "HiringSearch"]
