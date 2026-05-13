@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, X, Volume2, VolumeX, MessageSquare, Info, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { ConversationProvider, useConversation } from '@elevenlabs/react'
+import { useConversation, ConversationProvider } from '@elevenlabs/react'
 import toast from 'react-hot-toast'
 
 interface VoiceInterviewProps {
@@ -22,30 +22,34 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
   const [transcript, setTranscript] = useState<{ role: string; text: string }[]>([])
   const conversation = useConversation({
     onConnect: () => {
+      console.log('[VoiceInterview] Connected to ElevenLabs agent')
       setSessionStatus('connected')
       toast.success('Connected to AI Interviewer!')
     },
     onDisconnect: (details) => {
-      console.log('Disconnected from ElevenLabs. Details:', details)
+      console.log('[VoiceInterview] Disconnected. Details:', details)
       setSessionStatus('idle')
       if (details?.reason) {
         toast.error(`Disconnected: ${details.reason}`)
       }
     },
     onMessage: (message) => {
-      // @ts-ignore
-      const text = message.message || message.text
+      console.log('[VoiceInterview] Message received:', message)
+      // Handle both old and new message formats
+      const msg = message as unknown as Record<string, unknown>
+      const text = (msg.message || msg.text || msg.content || '') as string
+      const source = (msg.source || msg.role || 'ai') as string
       if (text) {
         setTranscript(prev => [...prev, {
-          role: message.source === 'user' ? 'You' : 'AI Coach',
+          role: source === 'user' ? 'You' : 'AI Coach',
           text
         }])
       }
     },
     onError: (error) => {
-      console.error('ElevenLabs Error:', error)
+      console.error('[VoiceInterview] Error:', error)
       setSessionStatus('error')
-      toast.error('Connection error. Check your Agent ID.')
+      toast.error('Connection error. Please try again.')
     },
   })
 
@@ -54,13 +58,25 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
   const handleStartClick = useCallback(async () => {
     const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID
     if (!agentId) {
-      toast.error('Agent ID not configured.')
+      toast.error('ElevenLabs Agent ID not configured. Add NEXT_PUBLIC_ELEVENLABS_AGENT_ID to your environment.')
       return
     }
 
     setSessionStatus('connecting')
 
     try {
+      // Request microphone permission first to give a clear error
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch (micErr: any) {
+      console.error('[VoiceInterview] Microphone access denied:', micErr)
+      toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
+      setSessionStatus('error')
+      return
+    }
+
+    try {
+      // Use dynamicVariables (recommended) instead of overrides
+      // Overrides require explicit enablement in ElevenLabs dashboard security settings
       await conversation.startSession({
         agentId,
         dynamicVariables: {
@@ -68,23 +84,11 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
           role_title: role,
           interview_type: sessionType,
         },
-        overrides: {
-          agent: {
-            prompt: {
-              prompt: `You are an AI Interview Coach conducting a ${sessionType} interview for the position of ${role} at ${company}. You must evaluate their skills, ask tough relevant questions, and provide feedback at the end.`,
-            },
-            firstMessage: `Hello! I am your AI Coach. We are doing a ${sessionType} interview for the ${role} position at ${company}. Are you ready to begin?`
-          }
-        }
       })
       // Connection success is handled by onConnect callback
     } catch (err: any) {
-      console.error('Error starting session:', err)
-      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError' || err?.message?.includes('Permission denied')) {
-        toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
-      } else {
-        toast.error('Could not connect: ' + (err?.message || 'Unknown error'))
-      }
+      console.error('[VoiceInterview] Error starting session:', err)
+      toast.error('Could not connect: ' + (err?.message || 'Unknown error'))
       setSessionStatus('error')
     }
   }, [conversation, company, role, sessionType])
