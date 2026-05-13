@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
-const applicationStatuses = ['applied', 'phone_screen', 'interviewing', 'offer', 'rejected', 'ghosted'] as const
+const applicationStatuses = ['applied', 'phone_screen', 'interviewing', 'offer', 'rejected', 'ghosted', 'saved'] as const
 const applicationSources = ['linkedin', 'indeed', 'referral', 'company_site', 'cold', 'other', 'chrome_extension'] as const
 const reminderTypes = ['follow_up', 'thank_you', 'check_in', 'deadline', 'interview_prep'] as const
 const emailDigests = ['daily', 'weekly', 'instant', 'never'] as const

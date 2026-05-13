@@ -33,27 +33,48 @@ async function handleRequest(req: NextRequest, path: string, method: string) {
   let body = undefined
   if (['POST', 'PATCH', 'PUT'].includes(method)) {
     try {
-      body = JSON.stringify(await req.json())
+      const contentType = req.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        body = JSON.stringify(await req.json())
+      }
     } catch (e) {
       // Body might be empty or not JSON
     }
   }
 
-  const response = await fetch(backendUrl, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-ID': auth.user.id,
-      'X-Internal-Key': process.env.CAREERS_INTERNAL_API_KEY || '',
-    },
-    body,
-  })
+  try {
+    const response = await fetch(backendUrl, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-ID': auth.user.id,
+        'X-Internal-Key': process.env.CAREERS_INTERNAL_API_KEY || '',
+      },
+      body,
+    })
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }))
-    return NextResponse.json(error, { status: response.status })
+    if (!response.ok) {
+      const errorText = await response.text()
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch (e) {
+        errorData = { error: `Backend returned ${response.status}: ${errorText.slice(0, 100)}` }
+      }
+      return NextResponse.json(errorData, { status: response.status })
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error: any) {
+    console.error(`[Careers Proxy Error]: ${error.message}`)
+    return NextResponse.json(
+      { 
+        error: 'Proxy Connection Failed', 
+        details: error.message,
+        target: backendUrl 
+      }, 
+      { status: 502 }
+    )
   }
-
-  const data = await response.json()
-  return NextResponse.json(data)
 }
