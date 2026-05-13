@@ -50,9 +50,22 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
     }
 
     try {
-      // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true })
+      // 1. Check if mediaDevices is available (requires HTTPS or localhost)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Your browser does not support microphone access or you are not on a secure (HTTPS) connection.')
+        return
+      }
+
+      // 2. Request microphone permission explicitly
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true })
+      } catch (micErr) {
+        console.error('Microphone access denied:', micErr)
+        toast.error('Microphone access denied. Please enable it in your browser settings.')
+        return
+      }
       
+      // 3. Start the ElevenLabs session
       await conversation.startSession({
         agentId: agentId,
         dynamicVariables: {
@@ -63,7 +76,7 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
       })
     } catch (err) {
       console.error('Failed to start conversation:', err)
-      toast.error('Failed to access microphone or connect to voice service')
+      toast.error('Failed to connect to ElevenLabs. Please check your Agent ID and internet connection.')
     }
   }, [conversation, company, role, sessionType])
 
