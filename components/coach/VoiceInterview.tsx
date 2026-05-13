@@ -81,7 +81,8 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
   }, [conversation, company, role, sessionType])
 
   useEffect(() => {
-    startInterview()
+    // We no longer call startInterview here because browsers block 
+    // automatic microphone requests. It must be triggered by a user click.
     return () => {
       conversation.endSession()
     }
