@@ -12,7 +12,13 @@ export async function POST(req: NextRequest) {
   if (body.error) return body.error
 
   const normalized = normalizeApplicationInput(body.data)
-  if (normalized.error) return normalized.error
+  if (normalized.error) {
+    if (body.data?.source === 'chrome_extension') {
+      console.warn('[applications/create] Silently dropping invalid extension payload to stop loop:', body.data)
+      return new NextResponse(JSON.stringify({ id: 'fake_id', status: 'dropped' }), { status: 200 })
+    }
+    return normalized.error
+  }
 
   const { data, error } = await supabase
     .from('applications')
