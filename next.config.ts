@@ -28,7 +28,8 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            // Allow microphone for the AI Voice Interview Coach (ElevenLabs)
+            value: "camera=(), microphone=(self), geolocation=()",
           },
         ],
       },
