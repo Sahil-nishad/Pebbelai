@@ -3,14 +3,15 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState, type ElementType } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Send, Plus, Brain, Code, BarChart3, DollarSign, Target,
   HelpCircle, Clock, Trash2, Sparkles, ArrowRight, Briefcase,
-  Download, FileText, Loader2, History, X,
+  Download, FileText, Loader2, History, X, Mic
 } from 'lucide-react'
 import { authFetch } from '@/lib/api'
 import toast from 'react-hot-toast'
+import VoiceInterview from '@/components/coach/VoiceInterview'
 
 type SessionType = 'behavioral' | 'technical' | 'case' | 'salary' | 'general'
 interface Message { role: 'user' | 'assistant'; content: string }
@@ -68,6 +69,7 @@ export default function CoachPage() {
   const [autoStartPending, setAutoStartPending] = useState(false)
   const [generatingQA, setGeneratingQA] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [voiceModeActive, setVoiceModeActive] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -376,16 +378,27 @@ export default function CoachPage() {
 
                 {/* Download 10 Q&A PDF */}
                 {selectedType && (
-                  <button
-                    onClick={handleDownloadSectorQA}
-                    disabled={generatingQA}
-                    className="w-full mt-3 py-2.5 rounded-xl border-2 border-dashed border-stone-200 text-stone-500 text-[13px] font-semibold flex items-center justify-center gap-2 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {generatingQA
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating PDF…</>
-                      : <><FileText className="w-4 h-4" /> Download 10 {sessionTypes.find(s => s.type === selectedType)?.label} Q&amp;A as PDF</>
-                    }
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => setVoiceModeActive(true)}
+                      disabled={!company || isTyping}
+                      className="w-full mt-3 py-3.5 rounded-xl border-2 border-[#16a34a] text-[#16a34a] text-[14px] font-bold flex items-center justify-center gap-3 hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
+                    >
+                      <Mic className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                      Start Voice Interview
+                    </button>
+
+                    <button
+                      onClick={handleDownloadSectorQA}
+                      disabled={generatingQA}
+                      className="w-full py-2.5 rounded-xl border-2 border-dashed border-stone-200 text-stone-500 text-[13px] font-semibold flex items-center justify-center gap-2 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {generatingQA
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating PDF…</>
+                        : <><FileText className="w-4 h-4" /> Download 10 {sessionTypes.find(s => s.type === selectedType)?.label} Q&amp;A as PDF</>
+                      }
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -535,6 +548,17 @@ export default function CoachPage() {
           </div>
         )}
       </main>
+
+      <AnimatePresence>
+        {voiceModeActive && (
+          <VoiceInterview
+            company={company}
+            role={role}
+            sessionType={selectedType || 'General'}
+            onClose={() => setVoiceModeActive(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
