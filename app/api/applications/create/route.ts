@@ -20,7 +20,15 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return new NextResponse(JSON.stringify({ error: error.message }), { status: 400 })
+  if (error) {
+    console.error('[applications/create] Supabase error:', error)
+    return new NextResponse(JSON.stringify({ 
+      error: error.message,
+      code: error.code,
+      details: error.details,
+      sent_data: normalized.data 
+    }), { status: 400 })
+  }
 
   const { error: activityError } = await supabase.from('activity_log').insert({
     user_id: user.id,
