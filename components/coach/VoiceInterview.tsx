@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, X, MessageSquare, Volume2, VolumeX, Loader2 } from 'lucide-react'
+import { Mic, MicOff, X, MessageSquare, Volume2, VolumeX, Loader2, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,12 @@ interface VoiceInterviewProps {
 
 type SessionStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error'
 
+// Detect mobile browsers — they need push-to-talk mode
+function isMobileBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+}
+
 export default function VoiceInterview({ company, role, sessionType, onClose }: VoiceInterviewProps) {
   const [showTranscript, setShowTranscript] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('idle')
@@ -26,6 +32,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const [isMuted, setIsMuted] = useState(false)
   const [currentSpeech, setCurrentSpeech] = useState('')
   const [waveformData, setWaveformData] = useState<number[]>(Array(32).fill(0))
+  const [isMobile, setIsMobile] = useState(false)
+  const [isPushToTalkHeld, setIsPushToTalkHeld] = useState(false)
 
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
@@ -46,6 +54,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   // Initialize speech synthesis
   useEffect(() => {
     synthRef.current = window.speechSynthesis
+    setIsMobile(isMobileBrowser())
     return () => {
       synthRef.current?.cancel()
       recognitionRef.current?.abort()
@@ -106,7 +115,9 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
             if (shouldRestartRef.current) {
               setSessionStatus('listening')
               resolve()
-              startListening()
+              // On mobile: longer delay so mic doesn't pick up speaker audio
+              const delay = isMobileBrowser() ? 800 : 0
+              setTimeout(() => startListening(), delay)
             } else { resolve() }
           }
           audio.onerror = () => {
@@ -139,12 +150,20 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     utterance.pitch = 1.0
     utterance.volume = 1.0
     utterance.onend = () => {
-      if (shouldRestartRef.current) { setSessionStatus('listening'); resolve(); startListening() }
-      else { resolve() }
+      if (shouldRestartRef.current) {
+        setSessionStatus('listening')
+        resolve()
+        const delay = isMobileBrowser() ? 800 : 0
+        setTimeout(() => startListening(), delay)
+      } else { resolve() }
     }
     utterance.onerror = () => {
-      if (shouldRestartRef.current) { setSessionStatus('listening'); resolve(); startListening() }
-      else { resolve() }
+      if (shouldRestartRef.current) {
+        setSessionStatus('listening')
+        resolve()
+        const delay = isMobileBrowser() ? 800 : 0
+        setTimeout(() => startListening(), delay)
+      } else { resolve() }
     }
     synthRef.current.speak(utterance)
   }, [getBestVoice])
@@ -191,6 +210,22 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     }
   }, [])
 
+  // Push-to-talk: start recording (mobile)
+  const handlePushToTalkStart = useCallback(() => {
+    if (!shouldRestartRef.current || sessionStatus === 'thinking' || sessionStatus === 'speaking') return
+    setIsPushToTalkHeld(true)
+    startListening()
+  }, [sessionStatus, startListening])
+
+  // Push-to-talk: stop recording and send (mobile)
+  const handlePushToTalkEnd = useCallback(() => {
+    setIsPushToTalkHeld(false)
+    if (isListeningRef.current) {
+      try { recognitionRef.current?.stop() } catch {}
+      isListeningRef.current = false
+    }
+  }, [])
+
   // Stop speech recognition
   const stopListening = useCallback(() => {
     shouldRestartRef.current = false
@@ -225,6 +260,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       let accumulatedTranscript = ''
       let silenceTimer: ReturnType<typeof setTimeout> | null = null
       let hasSpoken = false
+      const mobile = isMobileBrowser()
 
       recognition.onresult = (event: any) => {
         let interim = ''
@@ -247,7 +283,24 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
         setCurrentSpeech(accumulatedTranscript + interim)
 
-        // Reset silence timer — user is still talking
+        // On mobile: send immediately on final result (no silence timer — mobile recognition is unreliable)
+        if (mobile && final && accumulatedTranscript.trim()) {
+          if (silenceTimer) clearTimeout(silenceTimer)
+          silenceTimer = setTimeout(() => {
+            if (accumulatedTranscript.trim()) {
+              const message = accumulatedTranscript.trim()
+              accumulatedTranscript = ''
+              hasSpoken = false
+              setCurrentSpeech('')
+              recognition.stop()
+              isListeningRef.current = false
+              sendToCoach(message)
+            }
+          }, 1500) // Shorter timeout on mobile
+          return
+        }
+
+        // Desktop: reset silence timer — user is still talking
         if (silenceTimer) clearTimeout(silenceTimer)
         if (hasSpoken || interim) {
           silenceTimer = setTimeout(() => {
@@ -276,8 +329,15 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
           if (silenceTimer) clearTimeout(silenceTimer)
           sendToCoach(message)
         } else if (shouldRestartRef.current && sessionStatus !== 'thinking' && sessionStatus !== 'speaking') {
-          // No speech captured — restart listening
-          setTimeout(() => startListening(), 300)
+          // On mobile: don't auto-restart — wait for push-to-talk
+          // On desktop: restart after a short delay
+          if (!mobile) {
+            setTimeout(() => startListening(), 300)
+          } else {
+            // Mobile: go back to idle listening state, user taps to speak
+            setSessionStatus('listening')
+            setCurrentSpeech('')
+          }
         }
       }
 
@@ -288,13 +348,13 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
           toast.error('Microphone access denied. Allow microphone in browser settings.', { duration: 5000 })
           setSessionStatus('error')
         } else if (event.error === 'no-speech') {
-          // No speech detected — restart if session is active
-          if (shouldRestartRef.current) setTimeout(() => startListening(), 300)
+          if (!mobile && shouldRestartRef.current) setTimeout(() => startListening(), 300)
+          else if (mobile) { setSessionStatus('listening'); setCurrentSpeech('') }
         } else if (event.error === 'aborted') {
           // Aborted — don't restart (likely intentional)
         } else {
-          // Other errors — try to restart
-          if (shouldRestartRef.current) setTimeout(() => startListening(), 500)
+          if (!mobile && shouldRestartRef.current) setTimeout(() => startListening(), 500)
+          else if (mobile) { setSessionStatus('listening'); setCurrentSpeech('') }
         }
       }
 
@@ -547,27 +607,57 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Sound</span>
           </button>
 
-          {/* Main Mic Button */}
+          {/* Main Mic Button — desktop: tap to toggle, mobile: hold to speak */}
           <div className="flex flex-col items-center gap-3">
-            <button
-              onClick={isActive ? handleStop : handleStart}
-              disabled={sessionStatus === 'connecting'}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg disabled:opacity-60 disabled:cursor-wait ${
-                isActive
-                  ? 'bg-[#0A6A47] hover:bg-[#085c3d] shadow-[#0A6A47]/25'
-                  : 'bg-[#0A6A47] hover:bg-[#085c3d] shadow-[#0A6A47]/25'
-              }`}
-            >
-              {sessionStatus === 'connecting' ? (
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
-              ) : isActive ? (
-                <Mic className="w-8 h-8 text-white" />
-              ) : (
-                <MicOff className="w-8 h-8 text-white" />
-              )}
-            </button>
+            {isMobile && isActive ? (
+              // Mobile push-to-talk button
+              <button
+                onTouchStart={e => { e.preventDefault(); handlePushToTalkStart() }}
+                onTouchEnd={e => { e.preventDefault(); handlePushToTalkEnd() }}
+                onMouseDown={handlePushToTalkStart}
+                onMouseUp={handlePushToTalkEnd}
+                onMouseLeave={handlePushToTalkEnd}
+                disabled={sessionStatus === 'thinking' || sessionStatus === 'speaking'}
+                className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-150 shadow-lg select-none ${
+                  isPushToTalkHeld
+                    ? 'bg-red-500 shadow-red-500/30 scale-110'
+                    : sessionStatus === 'thinking' || sessionStatus === 'speaking'
+                    ? 'bg-slate-300 shadow-slate-200/50 opacity-60'
+                    : 'bg-[#0A6A47] shadow-[#0A6A47]/25 active:scale-95'
+                }`}
+              >
+                {sessionStatus === 'thinking' ? (
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                ) : (
+                  <Mic className={`w-8 h-8 text-white ${isPushToTalkHeld ? 'animate-pulse' : ''}`} />
+                )}
+              </button>
+            ) : (
+              // Desktop: tap to start/stop
+              <button
+                onClick={isActive ? handleStop : handleStart}
+                disabled={sessionStatus === 'connecting'}
+                className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg disabled:opacity-60 disabled:cursor-wait ${
+                  isActive
+                    ? 'bg-[#0A6A47] hover:bg-[#085c3d] shadow-[#0A6A47]/25'
+                    : 'bg-[#0A6A47] hover:bg-[#085c3d] shadow-[#0A6A47]/25'
+                }`}
+              >
+                {sessionStatus === 'connecting' ? (
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                ) : isActive ? (
+                  <Mic className="w-8 h-8 text-white" />
+                ) : (
+                  <MicOff className="w-8 h-8 text-white" />
+                )}
+              </button>
+            )}
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              {isActive ? 'Tap to end' : sessionStatus === 'connecting' ? 'Wait...' : 'Tap to start'}
+              {!isActive
+                ? sessionStatus === 'connecting' ? 'Wait...' : 'Tap to start'
+                : isMobile
+                ? isPushToTalkHeld ? 'Release to send' : sessionStatus === 'thinking' ? 'Thinking...' : sessionStatus === 'speaking' ? 'AI speaking...' : 'Hold to speak'
+                : 'Tap to end'}
             </span>
           </div>
 
@@ -586,7 +676,12 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 py-3 flex items-center justify-center">
+      <div className="relative z-10 py-3 flex flex-col items-center gap-1">
+        {isMobile && isActive && (
+          <p className="text-[11px] font-semibold text-[#0A6A47] bg-[#0A6A47]/10 px-3 py-1 rounded-full">
+            Hold the mic button to speak, release to send
+          </p>
+        )}
         <span className="text-[10px] font-medium text-slate-300 uppercase tracking-widest">
           Powered by Web Speech API + Groq AI
         </span>
