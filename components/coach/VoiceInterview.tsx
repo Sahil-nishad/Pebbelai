@@ -20,29 +20,22 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
   const [showTranscript, setShowTranscript] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('idle')
   const [transcript, setTranscript] = useState<{ role: string; text: string }[]>([])
+  const contextSentRef = useRef(false)
+
   const conversation = useConversation({
     onConnect: () => {
       console.log('[VoiceInterview] Connected to ElevenLabs agent')
       setSessionStatus('connected')
       toast.success('Connected to AI Interviewer!')
-      // Send interview context as a contextual update after connection
-      try {
-        conversation.sendContextualUpdate(
-          `The candidate is interviewing for the position of ${role || 'a role'} at ${company}. This is a ${sessionType} interview. Please conduct the interview accordingly.`
-        )
-      } catch (e) {
-        console.warn('[VoiceInterview] Could not send contextual update:', e)
-      }
     },
     onDisconnect: (details) => {
       console.log('[VoiceInterview] Disconnected. Details:', details)
       setSessionStatus('idle')
-      if (details?.reason) {
+      if (details?.reason && details.reason !== 'agent') {
         toast.error(`Disconnected: ${details.reason}`)
       }
     },
     onMessage: (message) => {
-      console.log('[VoiceInterview] Message received:', message)
       // Handle both old and new message formats
       const msg = message as unknown as Record<string, unknown>
       const text = (msg.message || msg.text || msg.content || '') as string
@@ -73,27 +66,21 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
     setSessionStatus('connecting')
 
     try {
-      // Request microphone permission first to give a clear error
-      await navigator.mediaDevices.getUserMedia({ audio: true })
-    } catch (micErr: any) {
-      console.error('[VoiceInterview] Microphone access denied:', micErr)
-      toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
-      setSessionStatus('error')
-      return
-    }
-
-    try {
-      // Start session with only agentId — no overrides or dynamicVariables
-      // The agent's prompt on ElevenLabs dashboard handles the interview behavior.
-      // Context is injected via contextual update after connection.
-      await conversation.startSession({ agentId })
+      // Do NOT call getUserMedia here — let the ElevenLabs SDK handle mic access
+      // internally. Calling it ourselves can lock the mic and cause track publishing failures.
+      // Use websocket connectionType to avoid WebRTC track publishing issues
+      await conversation.startSession({ agentId, connectionType: 'websocket' })
       // Connection success is handled by onConnect callback
     } catch (err: any) {
       console.error('[VoiceInterview] Error starting session:', err)
-      toast.error('Could not connect: ' + (err?.message || 'Unknown error'))
+      if (err?.name === 'NotAllowedError' || err?.message?.includes('Permission denied') || err?.message?.includes('not allowed')) {
+        toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
+      } else {
+        toast.error('Could not connect: ' + (err?.message || 'Unknown error'))
+      }
       setSessionStatus('error')
     }
-  }, [conversation, company, role, sessionType])
+  }, [conversation])
 
   const handleStop = useCallback(async () => {
     await conversation.endSession()
