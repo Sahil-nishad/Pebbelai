@@ -232,75 +232,79 @@ export default function CoachPage() {
 
   // ── Setup screen (before session starts) ─────────────────────────────────
   const SetupScreen = () => (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <div className="flex-1 overflow-hidden">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 h-full flex flex-col justify-center">
 
-        {/* Hero */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-[#0A6A47]/10 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-[#0A6A47]" />
-            </div>
-            <span className="text-[11px] font-bold uppercase tracking-widest text-[#0A6A47]">AI Interview Coach</span>
+        {/* Hero — compact */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              AI Interview Coach
+            </h1>
+            <p className="text-slate-400 text-sm mt-0.5">Tailored mock interviews for your target role</p>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2">
-            Practice. Prepare. <span className="text-[#0A6A47]">Get hired.</span>
-          </h1>
-          <p className="text-slate-500 text-[15px] max-w-lg">
-            AI-powered mock interviews tailored to your company, role, and experience level.
-          </p>
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-500 text-sm font-semibold hover:border-[#0A6A47]/40 hover:text-[#0A6A47] transition-all"
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">History</span>
+            {sessions.length > 0 && (
+              <span className="bg-[#0A6A47] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{sessions.length}</span>
+            )}
+          </button>
         </div>
 
         {/* Main setup card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-3">
 
           {/* Company + Role inputs */}
-          <div className="p-6 border-b border-slate-50">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="p-4 sm:p-5 border-b border-slate-50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-2">Company</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-1.5">Company</label>
                 <input
                   value={company}
                   onChange={e => setCompany(e.target.value)}
                   placeholder="e.g. Google, TCS, Infosys"
-                  className="w-full border-b-2 border-slate-200 focus:border-[#0A6A47] bg-transparent pb-2 text-[17px] font-semibold text-slate-900 placeholder:text-slate-300 transition-colors focus:outline-none"
+                  className="w-full border-b-2 border-slate-200 focus:border-[#0A6A47] bg-transparent pb-1.5 text-[16px] font-semibold text-slate-900 placeholder:text-slate-300 transition-colors focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-2">Role Title</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-1.5">Role Title</label>
                 <input
                   value={role}
                   onChange={e => setRole(e.target.value)}
                   placeholder="e.g. Software Engineer, PM"
-                  className="w-full border-b-2 border-slate-200 focus:border-[#0A6A47] bg-transparent pb-2 text-[17px] font-semibold text-slate-900 placeholder:text-slate-300 transition-colors focus:outline-none"
+                  className="w-full border-b-2 border-slate-200 focus:border-[#0A6A47] bg-transparent pb-1.5 text-[16px] font-semibold text-slate-900 placeholder:text-slate-300 transition-colors focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
           {/* Experience Level */}
-          <div className="px-6 py-5 border-b border-slate-50">
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-3">Experience Level</label>
-            <div className="flex gap-2.5">
+          <div className="px-4 sm:px-5 py-3.5 border-b border-slate-50">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-2.5">Experience Level</label>
+            <div className="flex gap-2">
               {experienceLevels.map(({ level, icon: Icon, label, desc }) => (
                 <button
                   key={level}
                   type="button"
                   onClick={() => setExperienceLevel(level)}
-                  className={`flex-1 flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all text-left ${
+                  className={`flex-1 flex items-center gap-2 p-2.5 rounded-xl border-2 transition-all text-left ${
                     experienceLevel === level
                       ? 'border-[#0A6A47] bg-[#0A6A47]/5'
                       : 'border-slate-100 bg-slate-50 hover:border-slate-200'
                   }`}
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${
                     experienceLevel === level ? 'bg-[#0A6A47] text-white' : 'bg-white text-slate-400 border border-slate-200'
                   }`}>
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-3 h-3" />
                   </div>
                   <div>
-                    <div className={`text-[12px] font-bold ${experienceLevel === level ? 'text-[#0A6A47]' : 'text-slate-700'}`}>{label}</div>
-                    <div className="text-[10px] text-slate-400">{desc}</div>
+                    <div className={`text-[11px] font-bold ${experienceLevel === level ? 'text-[#0A6A47]' : 'text-slate-700'}`}>{label}</div>
+                    <div className="text-[9px] text-slate-400">{desc}</div>
                   </div>
                 </button>
               ))}
@@ -308,24 +312,24 @@ export default function CoachPage() {
           </div>
 
           {/* Focus Area */}
-          <div className="px-6 py-5">
-            <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-3">Focus Area</label>
+          <div className="px-4 sm:px-5 py-3.5">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em] mb-2.5">Focus Area</label>
             <div className="grid grid-cols-5 gap-2">
               {sessionTypes.map(st => (
                 <button
                   key={st.type}
                   type="button"
                   onClick={() => setSelectedType(st.type)}
-                  className={`p-3 rounded-xl border-2 text-left transition-all duration-150 ${
+                  className={`p-2.5 rounded-xl border-2 text-left transition-all duration-150 ${
                     selectedType === st.type
                       ? 'border-[#0A6A47] bg-[#0A6A47]/5 shadow-sm'
                       : 'border-slate-100 bg-slate-50 hover:border-slate-200 hover:bg-white'
                   }`}
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-2 ${st.bg} border`}>
-                    <st.icon className={`w-3.5 h-3.5 ${st.color}`} />
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center mb-1.5 ${st.bg} border`}>
+                    <st.icon className={`w-3 h-3 ${st.color}`} />
                   </div>
-                  <div className={`font-bold text-[11px] leading-tight ${selectedType === st.type ? 'text-[#0A6A47]' : 'text-slate-700'}`}>{st.label}</div>
+                  <div className={`font-bold text-[10px] leading-tight ${selectedType === st.type ? 'text-[#0A6A47]' : 'text-slate-700'}`}>{st.label}</div>
                   <div className="text-[9px] text-slate-400 mt-0.5 leading-tight hidden sm:block">{st.desc}</div>
                 </button>
               ))}
@@ -335,9 +339,9 @@ export default function CoachPage() {
 
         {/* App context banner */}
         {appContext && (
-          <div className="flex items-center gap-2.5 p-3.5 bg-[#0A6A47]/8 rounded-xl border border-[#0A6A47]/15 mb-4">
-            <Briefcase className="w-4 h-4 text-[#0A6A47] flex-shrink-0" />
-            <p className="text-[12px] text-[#0A6A47] font-medium">
+          <div className="flex items-center gap-2 p-3 bg-[#0A6A47]/8 rounded-xl border border-[#0A6A47]/15 mb-2">
+            <Briefcase className="w-3.5 h-3.5 text-[#0A6A47] flex-shrink-0" />
+            <p className="text-[11px] text-[#0A6A47] font-medium">
               Loaded from your application — <strong>{appContext.role}</strong> at <strong>{appContext.company}</strong>.
               {jobDescription ? ' Job description included.' : ''}
             </p>
@@ -349,18 +353,18 @@ export default function CoachPage() {
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-2.5 p-3.5 bg-emerald-50 rounded-xl border border-emerald-100 mb-5"
+            className="flex items-start gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100 mb-3"
           >
             <Zap className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-            <p className="text-[12px] text-emerald-800 leading-relaxed">
+            <p className="text-[11px] text-emerald-800 leading-relaxed">
               <strong>{sessionTypes.find(s => s.type === selectedType)?.label}</strong> interview
-              {role ? ` for ${role}` : ''} at <strong>{company}</strong> — questions tailored to company culture, hiring patterns & {experienceLevel} level.
+              {role ? ` for ${role}` : ''} at <strong>{company}</strong> — tailored to {experienceLevel} level.
             </p>
           </motion.div>
         )}
 
         {/* Three action cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
           {/* Text Interview */}
           <button
@@ -429,53 +433,13 @@ export default function CoachPage() {
             </div>
           </button>
         </div>
-
-        {/* Past Sessions */}
-        {sessions.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <History className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Past Sessions</span>
-              </div>
-              <button onClick={() => setHistoryOpen(true)} className="text-[12px] font-semibold text-[#0A6A47] hover:text-[#085c3d] transition-colors flex items-center gap-1">
-                View all ({sessions.length}) <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              {sessions.slice(0, 3).map(session => (
-                <button
-                  key={session.id}
-                  onClick={() => loadSession(session)}
-                  className="w-full flex items-center gap-3 p-3.5 bg-white rounded-xl border border-slate-100 hover:border-[#0A6A47]/30 hover:shadow-sm transition-all text-left group"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-[#0A6A47]/10 flex items-center justify-center text-sm font-black text-[#0A6A47] flex-shrink-0">
-                    {session.company.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-[#0A6A47] transition-colors truncate">{session.company}</p>
-                    <p className="text-xs text-slate-400 truncate">{session.role || 'No role specified'}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${typeColor[session.session_type as SessionType] || 'text-slate-600 bg-slate-100'}`}>
-                      {session.session_type}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
 
 
   return (
-    <div className={`-m-4 md:-mx-6 md:-mb-8 lg:-mx-8 lg:-mb-8 ${hasSession ? 'h-[calc(100vh-8.5rem)] md:h-[calc(100vh-0.5rem)] lg:h-[calc(100vh-2rem)] overflow-hidden flex flex-col' : 'min-h-[calc(100vh-4rem)]'}`}>
+    <div className={`-m-4 md:-mx-6 md:-mb-8 lg:-mx-8 lg:-mb-8 ${hasSession ? 'h-[calc(100vh-8.5rem)] md:h-[calc(100vh-0.5rem)] lg:h-[calc(100vh-2rem)] overflow-hidden flex flex-col' : 'h-[calc(100vh-8.5rem)] md:h-[calc(100vh-0.5rem)] lg:h-[calc(100vh-2rem)] overflow-hidden flex flex-col'}`}>
 
       {/* ── Voice Interview Portal ── */}
       <AnimatePresence>
