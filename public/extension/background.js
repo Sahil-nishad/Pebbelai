@@ -1,4 +1,4 @@
-﻿const AUTH_TOKEN_KEY = 'pebelaiAuthToken';
+const AUTH_TOKEN_KEY = 'pebelaiAuthToken';
 const AUTH_EMAIL_KEY = 'pebelaiAuthEmail';
 const JOB_CACHE_KEY = 'pebelaiJobCacheByTab';
 const AUTO_SAVE_LOG_KEY = 'pebelaiAutoSaveLog';
@@ -851,7 +851,8 @@ async function drainPendingAutoSaves(token) {
       await sendApplicationToPebel(token, item.payload);
       await markAutoSaved(item.payload);
     } catch (_error) {
-      remaining.push(item);
+      // Discard the item instead of infinitely retrying to prevent 400 Bad Request spam in the console
+      console.warn('Discarding failed auto-save item to prevent infinite loops:', _error);
     }
   }
 
