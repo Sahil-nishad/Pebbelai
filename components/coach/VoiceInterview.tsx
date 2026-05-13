@@ -76,14 +76,9 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
         micStreamRef.current = stream
         setSessionStatus('connecting')
 
-        return conversation.startSession({
-          agentId,
-          dynamicVariables: {
-            company_name: company,
-            role_title: role,
-            interview_type: sessionType,
-          },
-        })
+        // Dynamic variables must be registered in ElevenLabs dashboard "Variables" tab.
+        // Omitting here to prevent immediate disconnect when not registered.
+        return conversation.startSession({ agentId })
       })
       .catch((err) => {
         console.error('Error:', err)
