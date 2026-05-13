@@ -35,6 +35,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const transcriptEndRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  // Keep sessionId in a ref so recognition closures always read the latest value
+  const sessionIdRef = useRef<string | null>(null)
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -149,13 +151,15 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
   // Send message to voice-optimized coach API and speak the response
   const sendToCoach = useCallback(async (userMessage: string) => {
-    if (!sessionId || !userMessage.trim()) return
+    // Use ref — not state — so this always has the latest sessionId even in stale closures
+    const currentSessionId = sessionIdRef.current
+    if (!currentSessionId || !userMessage.trim()) return
     setTranscript(prev => [...prev, { role: 'You', text: userMessage }])
     setSessionStatus('thinking')
     try {
       const res = await authFetch('/api/coach/voice-message', {
         method: 'POST',
-        body: JSON.stringify({ sessionId, message: userMessage }),
+        body: JSON.stringify({ sessionId: currentSessionId, message: userMessage }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Failed')
@@ -167,7 +171,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       setSessionStatus('listening')
       startListening()
     }
-  }, [sessionId, speak])
+  }, [speak])
 
   // Start speech recognition
   const startListening = useCallback(() => {
@@ -210,6 +214,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Failed to start session')
       setSessionId(data.session.id)
+      sessionIdRef.current = data.session.id  // Update ref immediately — don't wait for re-render
 
       const recognition = new SpeechRecognition()
       recognition.continuous = false  // Use non-continuous — restarts after each utterance
@@ -311,6 +316,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const handleStop = useCallback(() => {
     shouldRestartRef.current = false
     isListeningRef.current = false
+    sessionIdRef.current = null
 
     // Stop speech recognition
     try { recognitionRef.current?.abort() } catch {}
