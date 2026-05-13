@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, X, MessageSquare, Volume2, VolumeX, Loader2 } from 'lucide-react'
 import Image from 'next/image'
@@ -281,12 +282,15 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     error: 'Something went wrong. Try again.',
   }[sessionStatus]
 
-  return (
+  // Use portal to render at document body level, above sidebar and all other UI
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 40%, #091a2e 100%)' }}
     >
       {/* Background ambient glow */}
@@ -521,6 +525,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       <div className="absolute bottom-5 flex items-center gap-2 text-white/20 text-[9px] font-bold uppercase tracking-[0.2em]">
         Powered by Web Speech API + Groq AI
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }
