@@ -154,12 +154,19 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   // Start speech recognition
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isListeningRef.current) return
+    if (!shouldRestartRef.current) return
     try {
-      recognitionRef.current.start()
       isListeningRef.current = true
       setSessionStatus('listening')
       setCurrentSpeech('')
-    } catch {}
+      recognitionRef.current.start()
+    } catch (e) {
+      // Already started or other error — retry after delay
+      isListeningRef.current = false
+      if (shouldRestartRef.current) {
+        setTimeout(() => startListening(), 500)
+      }
+    }
   }, [])
 
   // Stop speech recognition
@@ -187,37 +194,85 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       setSessionId(data.session.id)
 
       const recognition = new SpeechRecognition()
-      recognition.continuous = true
+      recognition.continuous = false  // Use non-continuous — restarts after each utterance
       recognition.interimResults = true
       recognition.lang = 'en-US'
-      let finalTranscript = ''
+      recognition.maxAlternatives = 1
+
+      let accumulatedTranscript = ''
+      let silenceTimer: ReturnType<typeof setTimeout> | null = null
+      let hasSpoken = false
 
       recognition.onresult = (event: any) => {
         let interim = ''
+        let final = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i]
           if (result[0]) {
-            if (result.isFinal) { finalTranscript += result[0].transcript + ' ' }
-            else { interim = result[0].transcript }
+            if (result.isFinal) {
+              final += result[0].transcript + ' '
+            } else {
+              interim = result[0].transcript
+            }
           }
         }
-        setCurrentSpeech(finalTranscript + interim)
+
+        if (final) {
+          accumulatedTranscript += final
+          hasSpoken = true
+        }
+
+        setCurrentSpeech(accumulatedTranscript + interim)
+
+        // Reset silence timer — user is still talking
+        if (silenceTimer) clearTimeout(silenceTimer)
+        if (hasSpoken || interim) {
+          silenceTimer = setTimeout(() => {
+            // User stopped talking for 2s — send what we have
+            if (accumulatedTranscript.trim()) {
+              const message = accumulatedTranscript.trim()
+              accumulatedTranscript = ''
+              hasSpoken = false
+              setCurrentSpeech('')
+              recognition.stop()
+              isListeningRef.current = false
+              sendToCoach(message)
+            }
+          }, 2000)
+        }
       }
+
       recognition.onend = () => {
         isListeningRef.current = false
-        if (finalTranscript.trim()) {
-          const message = finalTranscript.trim()
-          finalTranscript = ''
+        // If we have accumulated text that wasn't sent yet (recognition ended naturally)
+        if (accumulatedTranscript.trim()) {
+          const message = accumulatedTranscript.trim()
+          accumulatedTranscript = ''
+          hasSpoken = false
           setCurrentSpeech('')
+          if (silenceTimer) clearTimeout(silenceTimer)
           sendToCoach(message)
-        } else if (shouldRestartRef.current) { startListening() }
+        } else if (shouldRestartRef.current && sessionStatus !== 'thinking' && sessionStatus !== 'speaking') {
+          // No speech captured — restart listening
+          setTimeout(() => startListening(), 300)
+        }
       }
+
       recognition.onerror = (event: any) => {
         isListeningRef.current = false
+        if (silenceTimer) clearTimeout(silenceTimer)
         if (event.error === 'not-allowed') {
           toast.error('Microphone access denied. Allow microphone in browser settings.', { duration: 5000 })
           setSessionStatus('error')
-        } else if (event.error === 'no-speech' && shouldRestartRef.current) { startListening() }
+        } else if (event.error === 'no-speech') {
+          // No speech detected — restart if session is active
+          if (shouldRestartRef.current) setTimeout(() => startListening(), 300)
+        } else if (event.error === 'aborted') {
+          // Aborted — don't restart (likely intentional)
+        } else {
+          // Other errors — try to restart
+          if (shouldRestartRef.current) setTimeout(() => startListening(), 500)
+        }
       }
 
       recognitionRef.current = recognition
