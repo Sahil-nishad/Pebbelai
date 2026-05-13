@@ -1,16 +1,34 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Renderer, Program, Mesh, Triangle, Vec3 } from 'ogl'
+import { cn } from '@/lib/utils'
 
 interface VoiceOrbProps {
   className?: string
   hue?: number
-  isActive?: boolean
-  intensity?: number
+  enableVoiceControl?: boolean
+  voiceSensitivity?: number
+  maxRotationSpeed?: number
+  maxHoverIntensity?: number
 }
 
-const vert = `precision highp float;
+const VoiceOrb: React.FC<VoiceOrbProps> = ({
+  className,
+  hue = 0,
+  enableVoiceControl = true,
+  voiceSensitivity = 1.5,
+  maxRotationSpeed = 1.2,
+  maxHoverIntensity = 0.8,
+}) => {
+  const ctnDom = useRef<HTMLDivElement>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null)
+  const dataArrayRef = useRef<any>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+
+  const vert = `precision highp float;
 attribute vec2 position;
 attribute vec2 uv;
 varying vec2 vUv;
@@ -19,7 +37,7 @@ void main() {
   gl_Position = vec4(position, 0.0, 1.0);
 }`
 
-const frag = `precision highp float;
+  const frag = `precision highp float;
 uniform float iTime;
 uniform vec3 iResolution;
 uniform float hue;
@@ -135,87 +153,142 @@ void main() {
   gl_FragColor = vec4(col.rgb * col.a, col.a);
 }`
 
-export default function VoiceOrb({ className = '', hue = 150, isActive = false, intensity = 0 }: VoiceOrbProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const intensityRef = useRef(0)
+  const analyzeAudio = () => {
+    if (!analyserRef.current || !dataArrayRef.current) return 0
+    analyserRef.current.getByteFrequencyData(dataArrayRef.current)
+    let sum = 0
+    for (let i = 0; i < dataArrayRef.current.length; i++) {
+      const value = dataArrayRef.current[i] / 255
+      sum += value * value
+    }
+    const rms = Math.sqrt(sum / dataArrayRef.current.length)
+    return Math.min(rms * voiceSensitivity * 3.0, 1)
+  }
 
-  // Keep intensity ref in sync
-  useEffect(() => {
-    intensityRef.current = intensity
-  }, [intensity])
+  const stopMicrophone = () => {
+    try {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+        mediaStreamRef.current = null
+      }
+      if (microphoneRef.current) { microphoneRef.current.disconnect(); microphoneRef.current = null }
+      if (analyserRef.current) { analyserRef.current.disconnect(); analyserRef.current = null }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close()
+        audioContextRef.current = null
+      }
+      dataArrayRef.current = null
+    } catch (error) {
+      console.warn('Error stopping microphone:', error)
+    }
+  }
+
+  const initMicrophone = async () => {
+    try {
+      stopMicrophone()
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 44100 },
+      })
+      mediaStreamRef.current = stream
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      if (audioContextRef.current.state === 'suspended') await audioContextRef.current.resume()
+      analyserRef.current = audioContextRef.current.createAnalyser()
+      microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream)
+      analyserRef.current.fftSize = 512
+      analyserRef.current.smoothingTimeConstant = 0.3
+      analyserRef.current.minDecibels = -90
+      analyserRef.current.maxDecibels = -10
+      microphoneRef.current.connect(analyserRef.current)
+      dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount)
+      return true
+    } catch (error) {
+      console.warn('Microphone access denied:', error)
+      return false
+    }
+  }
 
   useEffect(() => {
-    const container = containerRef.current
+    const container = ctnDom.current
     if (!container) return
 
+    let rendererInstance: Renderer | null = null
+    let glContext: any = null
     let rafId: number
-    let renderer: Renderer | null = null
+    let program: Program | null = null
 
     try {
-      renderer = new Renderer({ alpha: true, premultipliedAlpha: false, antialias: true, dpr: window.devicePixelRatio || 1 })
-      const gl = renderer.gl
-      const canvas = gl.canvas as HTMLCanvasElement
-      gl.clearColor(0, 0, 0, 0)
-      gl.enable(gl.BLEND)
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+      rendererInstance = new Renderer({ alpha: true, premultipliedAlpha: false, antialias: true, dpr: window.devicePixelRatio || 1 })
+      glContext = rendererInstance.gl
+      const canvas = glContext.canvas as HTMLCanvasElement
+      glContext.clearColor(0, 0, 0, 0)
+      glContext.enable(glContext.BLEND)
+      glContext.blendFunc(glContext.SRC_ALPHA, glContext.ONE_MINUS_SRC_ALPHA)
 
       while (container.firstChild) container.removeChild(container.firstChild)
       container.appendChild(canvas)
 
-      const geometry = new Triangle(gl as any)
-      const program = new Program(gl as any, {
-        vertex: vert,
-        fragment: frag,
+      const geometry = new Triangle(rendererInstance.gl as any)
+      program = new Program(rendererInstance.gl as any, {
+        vertex: vert, fragment: frag,
         uniforms: {
           iTime: { value: 0 },
-          iResolution: { value: new Vec3(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height) },
+          iResolution: { value: new Vec3(glContext.canvas.width, glContext.canvas.height, glContext.canvas.width / glContext.canvas.height) },
           hue: { value: hue },
           hover: { value: 0 },
           rot: { value: 0 },
           hoverIntensity: { value: 0 },
         },
       })
-      const mesh = new Mesh(gl as any, { geometry, program })
+      const mesh = new Mesh(rendererInstance.gl as any, { geometry, program })
 
       const resize = () => {
-        if (!container || !renderer) return
+        if (!container || !rendererInstance || !glContext) return
         const dpr = window.devicePixelRatio || 1
         const width = container.clientWidth
         const height = container.clientHeight
         if (width === 0 || height === 0) return
-        renderer.setSize(width * dpr, height * dpr)
-        const c = gl.canvas as HTMLCanvasElement
+        rendererInstance.setSize(width * dpr, height * dpr)
+        const c = glContext.canvas as HTMLCanvasElement
         c.style.width = width + 'px'
         c.style.height = height + 'px'
-        program.uniforms.iResolution.value.set(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height)
+        if (program) program.uniforms.iResolution.value.set(glContext.canvas.width, glContext.canvas.height, glContext.canvas.width / glContext.canvas.height)
       }
       window.addEventListener('resize', resize)
       resize()
 
-      let currentRot = 0
       let lastTime = 0
+      let currentRot = 0
+      let isMicrophoneInitialized = false
+      const baseRotationSpeed = 0.3
+
+      if (enableVoiceControl) {
+        initMicrophone().then((success) => { isMicrophoneInitialized = success })
+      }
 
       const update = (t: number) => {
         rafId = requestAnimationFrame(update)
+        if (!program) return
         const dt = (t - lastTime) * 0.001
         lastTime = t
-
         program.uniforms.iTime.value = t * 0.001
         program.uniforms.hue.value = hue
 
-        const level = intensityRef.current
-        if (level > 0.05) {
-          currentRot += dt * (0.3 + level * 2.0)
+        if (enableVoiceControl && isMicrophoneInitialized) {
+          const voiceLevel = analyzeAudio()
+          const voiceRotationSpeed = baseRotationSpeed + voiceLevel * maxRotationSpeed * 2.0
+          if (voiceLevel > 0.05) currentRot += dt * voiceRotationSpeed
+          program.uniforms.hover.value = Math.min(voiceLevel * 2.0, 1.0)
+          program.uniforms.hoverIntensity.value = Math.min(voiceLevel * maxHoverIntensity * 0.8, maxHoverIntensity)
         } else {
           currentRot += dt * 0.1
+          program.uniforms.hover.value = 0
+          program.uniforms.hoverIntensity.value = 0
         }
-        program.uniforms.hover.value = Math.min(level * 2.0, 1.0)
-        program.uniforms.hoverIntensity.value = Math.min(level * 0.8, 0.8)
         program.uniforms.rot.value = currentRot
 
-        if (renderer && gl) {
-          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-          renderer.render({ scene: mesh })
+        if (rendererInstance && glContext) {
+          glContext.clear(glContext.COLOR_BUFFER_BIT | glContext.DEPTH_BUFFER_BIT)
+          rendererInstance.render({ scene: mesh })
         }
       }
       rafId = requestAnimationFrame(update)
@@ -223,19 +296,22 @@ export default function VoiceOrb({ className = '', hue = 150, isActive = false, 
       return () => {
         cancelAnimationFrame(rafId)
         window.removeEventListener('resize', resize)
-        if (container && gl && gl.canvas) {
+        if (container && glContext && glContext.canvas) {
           try {
-            const c = gl.canvas as HTMLCanvasElement
+            const c = glContext.canvas as HTMLCanvasElement
             if (container.contains(c)) container.removeChild(c)
           } catch {}
         }
-        gl.getExtension('WEBGL_lose_context')?.loseContext()
+        stopMicrophone()
+        if (glContext) glContext.getExtension('WEBGL_lose_context')?.loseContext()
       }
-    } catch (err) {
-      console.error('VoiceOrb init error:', err)
+    } catch (error) {
+      console.error('Error initializing Voice Orb:', error)
       return () => {}
     }
-  }, [hue])
+  }, [hue, enableVoiceControl, voiceSensitivity, maxRotationSpeed, maxHoverIntensity])
 
-  return <div ref={containerRef} className={`w-full h-full relative ${className}`} />
+  return <div ref={ctnDom} className={cn('w-full h-full relative', className)} />
 }
+
+export default VoiceOrb

@@ -6,6 +6,7 @@ import { Mic, MicOff, X, MessageSquare, Volume2, VolumeX, Loader2 } from 'lucide
 import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { authFetch } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import VoiceOrb from './VoiceOrb'
 
 interface VoiceInterviewProps {
@@ -24,12 +25,13 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [isMuted, setIsMuted] = useState(false)
   const [currentSpeech, setCurrentSpeech] = useState('')
-  const [orbIntensity, setOrbIntensity] = useState(0)
+  const [waveformData, setWaveformData] = useState<number[]>(Array(32).fill(0))
 
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const isListeningRef = useRef(false)
   const shouldRestartRef = useRef(false)
+  const waveformIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const transcriptEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll transcript
@@ -46,19 +48,17 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     }
   }, [])
 
-  // Animate orb intensity based on status
+  // Waveform animation
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>
-    if (sessionStatus === 'listening') {
-      interval = setInterval(() => setOrbIntensity(Math.random() * 0.4 + 0.1), 150)
-    } else if (sessionStatus === 'speaking') {
-      interval = setInterval(() => setOrbIntensity(Math.random() * 0.8 + 0.2), 100)
-    } else if (sessionStatus === 'thinking') {
-      interval = setInterval(() => setOrbIntensity(Math.random() * 0.3), 200)
+    if (sessionStatus === 'listening' || sessionStatus === 'speaking') {
+      waveformIntervalRef.current = setInterval(() => {
+        setWaveformData(Array(32).fill(0).map(() => Math.random() * 100))
+      }, 100)
     } else {
-      setOrbIntensity(0)
+      if (waveformIntervalRef.current) clearInterval(waveformIntervalRef.current)
+      setWaveformData(Array(32).fill(0))
     }
-    return () => clearInterval(interval)
+    return () => { if (waveformIntervalRef.current) clearInterval(waveformIntervalRef.current) }
   }, [sessionStatus])
 
   // Get the best available voice
@@ -78,10 +78,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   // Speak text using browser TTS
   const speak = useCallback((text: string): Promise<void> => {
     return new Promise((resolve) => {
-      if (!synthRef.current || isMuted) {
-        resolve()
-        return
-      }
+      if (!synthRef.current || isMuted) { resolve(); return }
       synthRef.current.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
       const voice = getBestVoice()
@@ -89,18 +86,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       utterance.rate = 1.05
       utterance.pitch = 1.0
       utterance.volume = 1.0
-
-      utterance.onend = () => {
-        setSessionStatus('listening')
-        resolve()
-        startListening()
-      }
-      utterance.onerror = () => {
-        setSessionStatus('listening')
-        resolve()
-        startListening()
-      }
-
+      utterance.onend = () => { setSessionStatus('listening'); resolve(); startListening() }
+      utterance.onerror = () => { setSessionStatus('listening'); resolve(); startListening() }
       setSessionStatus('speaking')
       synthRef.current.speak(utterance)
     })
@@ -109,10 +96,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   // Send message to coach API and speak the response
   const sendToCoach = useCallback(async (userMessage: string) => {
     if (!sessionId || !userMessage.trim()) return
-
     setTranscript(prev => [...prev, { role: 'You', text: userMessage }])
     setSessionStatus('thinking')
-
     try {
       const res = await authFetch('/api/coach/message', {
         method: 'POST',
@@ -120,17 +105,13 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Failed')
-
       const aiMessage = data.message || 'I could not generate a response. Please try again.'
       setTranscript(prev => [...prev, { role: 'AI Coach', text: aiMessage }])
-
-      // Clean markdown for speech
       const cleanForSpeech = aiMessage
         .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/^[-•*]\s+/gm, '')
         .replace(/^(Best answer|What worked|Improve|Next step):/gim, '$1: ')
         .trim()
-
       await speak(cleanForSpeech)
     } catch {
       toast.error('Failed to get AI response')
@@ -164,9 +145,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       toast.error('Your browser does not support speech recognition. Use Chrome or Edge.', { duration: 5000 })
       return
     }
-
     setSessionStatus('connecting')
-
     try {
       const res = await authFetch('/api/coach/start', {
         method: 'POST',
@@ -174,15 +153,12 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Failed to start session')
-
       setSessionId(data.session.id)
 
-      // Set up speech recognition
       const recognition = new SpeechRecognition()
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = 'en-US'
-
       let finalTranscript = ''
 
       recognition.onresult = (event: any) => {
@@ -190,16 +166,12 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i]
           if (result[0]) {
-            if (result.isFinal) {
-              finalTranscript += result[0].transcript + ' '
-            } else {
-              interim = result[0].transcript
-            }
+            if (result.isFinal) { finalTranscript += result[0].transcript + ' ' }
+            else { interim = result[0].transcript }
           }
         }
         setCurrentSpeech(finalTranscript + interim)
       }
-
       recognition.onend = () => {
         isListeningRef.current = false
         if (finalTranscript.trim()) {
@@ -207,32 +179,23 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
           finalTranscript = ''
           setCurrentSpeech('')
           sendToCoach(message)
-        } else if (shouldRestartRef.current) {
-          startListening()
-        }
+        } else if (shouldRestartRef.current) { startListening() }
       }
-
       recognition.onerror = (event: any) => {
         isListeningRef.current = false
         if (event.error === 'not-allowed') {
           toast.error('Microphone access denied. Allow microphone in browser settings.', { duration: 5000 })
           setSessionStatus('error')
-        } else if (event.error === 'no-speech' && shouldRestartRef.current) {
-          startListening()
-        }
+        } else if (event.error === 'no-speech' && shouldRestartRef.current) { startListening() }
       }
 
       recognitionRef.current = recognition
       shouldRestartRef.current = true
 
-      // Speak the intro message
       const introMessage = data.introMessage || `Hello! I'm your AI interview coach. Let's practice for your ${sessionType} interview at ${company}. Are you ready?`
       setTranscript([{ role: 'AI Coach', text: introMessage }])
-
-      // Load voices
       speechSynthesis.getVoices()
       await new Promise(resolve => setTimeout(resolve, 300))
-
       const cleanIntro = introMessage.replace(/\*\*(.*?)\*\*/g, '$1').replace(/^[-•*]\s+/gm, '').trim()
       await speak(cleanIntro)
     } catch (err: any) {
@@ -259,21 +222,25 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   }, [])
 
   const isActive = sessionStatus !== 'idle' && sessionStatus !== 'error' && sessionStatus !== 'connecting'
-  const isSpeaking = sessionStatus === 'speaking'
   const isListening = sessionStatus === 'listening'
+  const isSpeaking = sessionStatus === 'speaking'
   const isThinking = sessionStatus === 'thinking'
 
-  // Orb hue: green when listening, blue when speaking, amber when thinking
-  const orbHue = isListening ? 150 : isSpeaking ? 220 : isThinking ? 45 : 150
+  const getStatusText = () => {
+    if (isListening) return 'Listening...'
+    if (isThinking) return 'Processing...'
+    if (isSpeaking) return 'Speaking...'
+    if (sessionStatus === 'connecting') return 'Connecting...'
+    if (sessionStatus === 'error') return 'Error'
+    return 'Ready'
+  }
 
-  const statusLabel = {
-    idle: 'Ready to start',
-    connecting: 'Starting session...',
-    listening: 'Listening...',
-    thinking: 'AI is thinking...',
-    speaking: 'Speaking...',
-    error: 'Connection failed',
-  }[sessionStatus]
+  const getStatusColor = () => {
+    if (isListening) return 'text-blue-400'
+    if (isThinking) return 'text-yellow-400'
+    if (isSpeaking) return 'text-green-400'
+    return 'text-white/40'
+  }
 
   const headingText = {
     idle: 'Tap the mic to begin your interview.',
@@ -281,7 +248,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     listening: currentSpeech || "I'm listening. Go ahead.",
     thinking: 'Processing your answer...',
     speaking: 'Your AI coach is speaking...',
-    error: 'Something went wrong. Please try again.',
+    error: 'Something went wrong. Try again.',
   }[sessionStatus]
 
   return (
@@ -289,11 +256,15 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[60] min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 40%, #091a2e 100%)' }}
     >
-      {/* Subtle background glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[150px] pointer-events-none" />
+      {/* Background ambient glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl" />
+      </div>
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 p-5 flex items-center justify-between z-10">
@@ -314,81 +285,110 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
         </button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 w-full max-w-3xl flex flex-col items-center justify-center gap-6 relative px-6">
-
-        {/* Status */}
-        <div className="text-center space-y-3">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={sessionStatus}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="flex items-center justify-center gap-2"
-            >
-              <div className={`w-1.5 h-1.5 rounded-full ${
-                isSpeaking ? 'bg-blue-400 animate-pulse' :
-                isListening ? 'bg-emerald-400 animate-pulse' :
-                isThinking ? 'bg-amber-400 animate-pulse' :
-                sessionStatus === 'error' ? 'bg-red-400' : 'bg-white/30'
-              }`} />
-              <span className="text-white/50 font-medium tracking-widest uppercase text-[10px]">
-                {statusLabel}
-              </span>
-            </motion.div>
-          </AnimatePresence>
-
+      {/* Main content */}
+      <div className="relative z-10 flex flex-col items-center space-y-8">
+        {/* Status heading */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center space-y-3"
+        >
           <AnimatePresence mode="wait">
             <motion.p
-              key={isListening ? (currentSpeech || 'listening') : sessionStatus}
+              key={sessionStatus}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="text-white text-xl md:text-2xl font-semibold max-w-md mx-auto leading-snug"
+              className="text-white text-xl md:text-2xl font-semibold max-w-md mx-auto leading-snug px-4"
             >
               {headingText}
             </motion.p>
           </AnimatePresence>
-        </div>
+        </motion.div>
 
         {/* Voice Orb */}
-        <div className="relative w-64 h-64 md:w-80 md:h-80">
+        <motion.div
+          className="relative w-72 h-72 md:w-96 md:h-96"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
           <VoiceOrb
-            hue={orbHue}
-            isActive={isActive}
-            intensity={orbIntensity}
+            enableVoiceControl={isListening}
             className="rounded-full overflow-hidden"
+            hue={isListening ? 180 : isThinking ? 60 : isSpeaking ? 120 : 0}
           />
           {/* Pulse rings when listening */}
           <AnimatePresence>
             {isListening && (
               <>
                 <motion.div
-                  className="absolute inset-0 rounded-full border border-emerald-500/20"
-                  initial={{ scale: 1, opacity: 0.5 }}
-                  animate={{ scale: 1.4, opacity: 0 }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                  className="absolute inset-0 rounded-full border-2 border-blue-500/30"
+                  initial={{ scale: 1, opacity: 0.6 }}
+                  animate={{ scale: 1.5, opacity: 0 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
                 />
                 <motion.div
-                  className="absolute inset-0 rounded-full border border-emerald-500/10"
-                  initial={{ scale: 1, opacity: 0.3 }}
-                  animate={{ scale: 1.8, opacity: 0 }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut', delay: 0.6 }}
+                  className="absolute inset-0 rounded-full border-2 border-blue-500/20"
+                  initial={{ scale: 1, opacity: 0.4 }}
+                  animate={{ scale: 2, opacity: 0 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
                 />
               </>
             )}
           </AnimatePresence>
-          {/* Center icon overlay */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {/* Center icon */}
+          <div className="absolute inset-0 flex items-center justify-center">
             <AnimatePresence mode="wait">
-              {isThinking && (
+              {isThinking ? (
                 <motion.div key="thinking" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                  <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
+                  <Loader2 className="w-16 h-16 text-yellow-500 animate-spin" />
+                </motion.div>
+              ) : isSpeaking ? (
+                <motion.div key="speaking" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
+                  <Volume2 className="w-16 h-16 text-green-500" />
+                </motion.div>
+              ) : isListening ? (
+                <motion.div key="listening" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
+                  <Mic className="w-16 h-16 text-blue-500" />
+                </motion.div>
+              ) : (
+                <motion.div key="idle" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
+                  <MicOff className="w-16 h-16 text-white/30" />
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+        </motion.div>
+
+        {/* Waveform */}
+        <div className="flex items-center justify-center space-x-1 h-16">
+          {waveformData.map((height, index) => (
+            <motion.div
+              key={index}
+              className={cn(
+                'w-1 rounded-full transition-colors duration-300',
+                isListening ? 'bg-blue-500' : isThinking ? 'bg-yellow-500' : isSpeaking ? 'bg-green-500' : 'bg-white/10'
+              )}
+              animate={{
+                height: `${Math.max(4, height * 0.6)}px`,
+                opacity: isListening || isSpeaking ? 1 : 0.3,
+              }}
+              transition={{ duration: 0.1, ease: 'easeOut' }}
+            />
+          ))}
+        </div>
+
+        {/* Status text */}
+        <div className="text-center space-y-2">
+          <motion.p
+            className={cn('text-lg font-medium transition-colors', getStatusColor())}
+            animate={{ opacity: [1, 0.7, 1] }}
+            transition={{ duration: 2, repeat: isActive ? Infinity : 0 }}
+          >
+            {getStatusText()}
+          </motion.p>
         </div>
 
         {/* Controls */}
@@ -467,9 +467,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
               {transcript.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'AI Coach' ? 'justify-start' : 'justify-end'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                    msg.role === 'AI Coach'
-                      ? 'bg-white/5 text-white/70'
-                      : 'bg-emerald-600/80 text-white'
+                    msg.role === 'AI Coach' ? 'bg-white/5 text-white/70' : 'bg-emerald-600/80 text-white'
                   }`}>
                     <span className="block text-[9px] opacity-40 mb-1 uppercase font-bold tracking-wider">{msg.role}</span>
                     {msg.text}
@@ -491,7 +489,7 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
       {/* Footer */}
       <div className="absolute bottom-5 flex items-center gap-2 text-white/20 text-[9px] font-bold uppercase tracking-[0.2em]">
-        Powered by Web Speech API + Groq AI — Free & Private
+        Powered by Web Speech API + Groq AI
       </div>
     </motion.div>
   )
