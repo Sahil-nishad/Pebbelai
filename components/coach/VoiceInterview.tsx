@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, X, Volume2, VolumeX, MessageSquare, Info, Loader2 } from 'lucide-react'
+import { Mic, MicOff, X, MessageSquare, Info, Loader2, Volume2, VolumeX } from 'lucide-react'
 import Image from 'next/image'
-import { useConversation, ConversationProvider } from '@elevenlabs/react'
 import toast from 'react-hot-toast'
+import { authFetch } from '@/lib/api'
 
 interface VoiceInterviewProps {
   company: string
@@ -14,112 +14,295 @@ interface VoiceInterviewProps {
   onClose: () => void
 }
 
-type SessionStatus = 'idle' | 'requesting-mic' | 'connecting' | 'connected' | 'error'
+type SessionStatus = 'idle' | 'connecting' | 'connected' | 'listening' | 'thinking' | 'speaking' | 'error'
 
-function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInterviewProps) {
+// Extend Window for SpeechRecognition types
+interface SpeechRecognitionEvent {
+  results: { [index: number]: { [index: number]: { transcript: string } }; length: number }
+  resultIndex: number
+}
+
+export default function VoiceInterview({ company, role, sessionType, onClose }: VoiceInterviewProps) {
   const [showTranscript, setShowTranscript] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('idle')
   const [transcript, setTranscript] = useState<{ role: string; text: string }[]>([])
-  const contextSentRef = useRef(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [isMuted, setIsMuted] = useState(false)
+  const [currentSpeech, setCurrentSpeech] = useState('')
 
-  const conversation = useConversation({
-    onConnect: () => {
-      console.log('[VoiceInterview] Connected to ElevenLabs agent')
-      setSessionStatus('connected')
-      toast.success('Connected to AI Interviewer!')
-    },
-    onDisconnect: (details) => {
-      console.log('[VoiceInterview] Disconnected. Details:', details)
-      setSessionStatus('idle')
-      if (details?.reason && details.reason !== 'agent') {
-        toast.error(`Disconnected: ${details.reason}`)
+  const recognitionRef = useRef<any>(null)
+  const synthRef = useRef<SpeechSynthesis | null>(null)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const isListeningRef = useRef(false)
+  const shouldRestartRef = useRef(false)
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    synthRef.current = window.speechSynthesis
+    return () => {
+      synthRef.current?.cancel()
+      recognitionRef.current?.abort()
+    }
+  }, [])
+
+  // Get the best available voice
+  const getBestVoice = useCallback((): SpeechSynthesisVoice | null => {
+    const voices = speechSynthesis.getVoices()
+    // Prefer natural/neural voices
+    const preferred = [
+      'Google UK English Female',
+      'Google UK English Male',
+      'Microsoft Zira',
+      'Microsoft David',
+      'Samantha',
+      'Karen',
+      'Daniel',
+    ]
+    for (const name of preferred) {
+      const v = voices.find(voice => voice.name.includes(name))
+      if (v) return v
+    }
+    // Fallback: any English voice
+    return voices.find(v => v.lang.startsWith('en')) || voices[0] || null
+  }, [])
+
+  // Speak text using browser TTS
+  const speak = useCallback((text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!synthRef.current || isMuted) {
+        resolve()
+        return
       }
-    },
-    onMessage: (message) => {
-      // Handle both old and new message formats
-      const msg = message as unknown as Record<string, unknown>
-      const text = (msg.message || msg.text || msg.content || '') as string
-      const source = (msg.source || msg.role || 'ai') as string
-      if (text) {
-        setTranscript(prev => [...prev, {
-          role: source === 'user' ? 'You' : 'AI Coach',
-          text
-        }])
+
+      synthRef.current.cancel()
+      const utterance = new SpeechSynthesisUtterance(text)
+      utteranceRef.current = utterance
+
+      const voice = getBestVoice()
+      if (voice) utterance.voice = voice
+      utterance.rate = 1.0
+      utterance.pitch = 1.0
+      utterance.volume = 1.0
+
+      utterance.onend = () => {
+        setSessionStatus('listening')
+        resolve()
+        // Restart listening after speaking
+        startListening()
       }
-    },
-    onError: (error) => {
-      console.error('[VoiceInterview] Error:', error)
-      setSessionStatus('error')
-      toast.error('Connection error. Please try again.')
-    },
-  })
+      utterance.onerror = () => {
+        setSessionStatus('listening')
+        resolve()
+        startListening()
+      }
 
-  const { isSpeaking } = conversation
+      setSessionStatus('speaking')
+      synthRef.current.speak(utterance)
+    })
+  }, [isMuted, getBestVoice])
 
-  const handleStartClick = useCallback(async () => {
-    const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID
-    if (!agentId) {
-      toast.error('ElevenLabs Agent ID not configured. Add NEXT_PUBLIC_ELEVENLABS_AGENT_ID to your environment.')
+  // Send message to coach API and speak the response
+  const sendToCoach = useCallback(async (userMessage: string) => {
+    if (!sessionId || !userMessage.trim()) return
+
+    setTranscript(prev => [...prev, { role: 'You', text: userMessage }])
+    setSessionStatus('thinking')
+
+    try {
+      const res = await authFetch('/api/coach/message', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId, message: userMessage }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Failed')
+
+      const aiMessage = data.message || 'I could not generate a response. Please try again.'
+      setTranscript(prev => [...prev, { role: 'AI Coach', text: aiMessage }])
+
+      // Clean markdown for speech (remove bullets, bold markers, etc.)
+      const cleanForSpeech = aiMessage
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/^[-•*]\s+/gm, '')
+        .replace(/^(Best answer|What worked|Improve|Next step):/gim, '$1: ')
+        .trim()
+
+      await speak(cleanForSpeech)
+    } catch (err) {
+      toast.error('Failed to get AI response')
+      setSessionStatus('listening')
+      startListening()
+    }
+  }, [sessionId, speak])
+
+  // Start speech recognition
+  const startListening = useCallback(() => {
+    if (!recognitionRef.current || isListeningRef.current) return
+
+    try {
+      recognitionRef.current.start()
+      isListeningRef.current = true
+      setSessionStatus('listening')
+    } catch (e) {
+      // Already started — ignore
+    }
+  }, [])
+
+  // Stop speech recognition
+  const stopListening = useCallback(() => {
+    shouldRestartRef.current = false
+    isListeningRef.current = false
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
+  }, [])
+
+  // Initialize session and start voice interview
+  const handleStart = useCallback(async () => {
+    // Check browser support
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      toast.error('Your browser does not support speech recognition. Please use Chrome or Edge.', { duration: 5000 })
       return
     }
 
     setSessionStatus('connecting')
 
     try {
-      // Do NOT call getUserMedia here — let the ElevenLabs SDK handle mic access
-      // internally. Calling it ourselves can lock the mic and cause track publishing failures.
-      // Use websocket connectionType to avoid WebRTC track publishing issues
-      await conversation.startSession({
-        agentId,
-        connectionType: 'websocket',
-        dynamicVariables: {
-          company_name: company,
-          role_title: role || 'General',
-          interview_type: sessionType,
-        },
+      // Start a coach session via the existing API
+      const res = await authFetch('/api/coach/start', {
+        method: 'POST',
+        body: JSON.stringify({ company, role, sessionType }),
       })
-      // Connection success is handled by onConnect callback
-    } catch (err: any) {
-      console.error('[VoiceInterview] Error starting session:', err)
-      if (err?.name === 'NotAllowedError' || err?.message?.includes('Permission denied') || err?.message?.includes('not allowed')) {
-        toast.error('Microphone blocked. Click the lock icon 🔒 in the address bar and allow microphone.', { duration: 6000 })
-      } else {
-        toast.error('Could not connect: ' + (err?.message || 'Unknown error'))
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Failed to start session')
+
+      setSessionId(data.session.id)
+
+      // Set up speech recognition
+      const recognition = new SpeechRecognition()
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = 'en-US'
+
+      let finalTranscript = ''
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interim = ''
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i]
+          if (result[0]) {
+            if ((result as any).isFinal) {
+              finalTranscript += result[0].transcript + ' '
+            } else {
+              interim = result[0].transcript
+            }
+          }
+        }
+        setCurrentSpeech(finalTranscript + interim)
       }
+
+      recognition.onend = () => {
+        isListeningRef.current = false
+        // If we have accumulated speech, send it
+        if (finalTranscript.trim()) {
+          const message = finalTranscript.trim()
+          finalTranscript = ''
+          setCurrentSpeech('')
+          sendToCoach(message)
+        } else if (shouldRestartRef.current) {
+          // Restart if session is still active
+          startListening()
+        }
+      }
+
+      recognition.onerror = (event: any) => {
+        console.warn('[VoiceInterview] Recognition error:', event.error)
+        isListeningRef.current = false
+        if (event.error === 'not-allowed') {
+          toast.error('Microphone access denied. Please allow microphone in browser settings.', { duration: 5000 })
+          setSessionStatus('error')
+        } else if (event.error === 'no-speech') {
+          // No speech detected — restart
+          if (shouldRestartRef.current) startListening()
+        }
+      }
+
+      recognitionRef.current = recognition
+      shouldRestartRef.current = true
+
+      // Speak the intro message
+      const introMessage = data.introMessage || `Hello! I'm your AI interview coach. Let's practice for your ${sessionType} interview at ${company}. Are you ready?`
+      setTranscript([{ role: 'AI Coach', text: introMessage }])
+      setSessionStatus('speaking')
+
+      // Load voices (they may not be ready immediately)
+      speechSynthesis.getVoices()
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      const cleanIntro = introMessage
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/^[-•*]\s+/gm, '')
+        .trim()
+
+      await speak(cleanIntro)
+    } catch (err: any) {
+      console.error('[VoiceInterview] Start error:', err)
+      toast.error(err?.message || 'Failed to start voice interview')
       setSessionStatus('error')
     }
-  }, [conversation])
+  }, [company, role, sessionType, speak, sendToCoach, startListening])
 
-  const handleStop = useCallback(async () => {
-    await conversation.endSession()
+  // Stop the session
+  const handleStop = useCallback(() => {
+    shouldRestartRef.current = false
+    stopListening()
+    synthRef.current?.cancel()
     setSessionStatus('idle')
-  }, [conversation])
+  }, [stopListening])
+
+  // Toggle mute
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => {
+      if (!prev) {
+        // Muting — stop current speech
+        synthRef.current?.cancel()
+      }
+      return !prev
+    })
+  }, [])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      conversation.endSession()
+      shouldRestartRef.current = false
+      recognitionRef.current?.abort()
+      synthRef.current?.cancel()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const bars = Array.from({ length: 40 })
-  const isActive = sessionStatus === 'connected'
-  const isLoading = sessionStatus === 'connecting' || sessionStatus === 'requesting-mic'
+  const isActive = sessionStatus !== 'idle' && sessionStatus !== 'error' && sessionStatus !== 'connecting'
+  const isLoading = sessionStatus === 'connecting' || sessionStatus === 'thinking'
+  const isSpeaking = sessionStatus === 'speaking'
+  const isListening = sessionStatus === 'listening'
 
   const statusLabel = {
     idle: 'Ready to start',
-    'requesting-mic': 'Waiting for mic permission...',
-    connecting: 'Connecting to AI Coach...',
-    connected: isSpeaking ? 'Speaking' : 'Listening',
+    connecting: 'Starting session...',
+    connected: 'Connected',
+    listening: 'Listening...',
+    thinking: 'AI is thinking...',
+    speaking: 'AI is speaking...',
     error: 'Connection failed',
   }[sessionStatus]
 
   const headingText = {
     idle: 'Tap the mic to begin your interview.',
-    'requesting-mic': 'Allow microphone access in the popup.',
-    connecting: 'Waking up your AI Interviewer...',
-    connected: isSpeaking ? 'Your AI is speaking...' : "I'm listening. Go ahead.",
+    connecting: 'Setting up your AI interviewer...',
+    connected: 'Connected! Starting...',
+    listening: currentSpeech || "I'm listening. Go ahead.",
+    thinking: 'Processing your answer...',
+    speaking: 'Your AI coach is speaking...',
     error: 'Something went wrong. Please try again.',
   }[sessionStatus]
 
@@ -146,7 +329,7 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
           </div>
         </div>
         <button
-          onClick={onClose}
+          onClick={() => { handleStop(); onClose() }}
           className="p-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all"
         >
           <X className="w-5 h-5" />
@@ -167,7 +350,8 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
               className="flex items-center justify-center gap-2"
             >
               <div className={`w-2 h-2 rounded-full ${
-                isActive ? (isSpeaking ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500 animate-pulse') :
+                isSpeaking ? 'bg-blue-500 animate-pulse' :
+                isListening ? 'bg-emerald-500 animate-pulse' :
                 isLoading ? 'bg-amber-500 animate-pulse' :
                 sessionStatus === 'error' ? 'bg-red-500' : 'bg-slate-600'
               }`} />
@@ -178,7 +362,7 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
           </AnimatePresence>
           <AnimatePresence mode="wait">
             <motion.h2
-              key={headingText}
+              key={isListening ? currentSpeech || 'listening' : sessionStatus}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -196,7 +380,7 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
               key={i}
               animate={{
                 height: isActive
-                  ? [16, Math.random() * (isSpeaking ? 80 : 40) + 16, 16]
+                  ? [16, Math.random() * (isSpeaking ? 80 : isListening ? 40 : 20) + 16, 16]
                   : 10,
                 opacity: isActive ? 1 : 0.25,
               }}
@@ -207,7 +391,8 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
               }}
               className={`w-1.5 rounded-full ${
                 isSpeaking ? 'bg-blue-500' :
-                isActive ? 'bg-emerald-500' : 'bg-slate-700'
+                isListening ? 'bg-emerald-500' :
+                isLoading ? 'bg-amber-500' : 'bg-slate-700'
               }`}
             />
           ))}
@@ -228,15 +413,15 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
             {/* Main Mic Button */}
             <div className="flex flex-col items-center gap-3">
               <button
-                onClick={isActive ? handleStop : handleStartClick}
-                disabled={isLoading}
+                onClick={isActive ? handleStop : handleStart}
+                disabled={sessionStatus === 'connecting'}
                 className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_60px_rgba(0,0,0,0.6)] border-4 disabled:opacity-70 disabled:cursor-wait ${
                   isActive
                     ? 'bg-emerald-600 border-emerald-400/50 scale-110 hover:bg-red-600 hover:border-red-400/50'
                     : 'bg-white border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                {isLoading ? (
+                {sessionStatus === 'connecting' ? (
                   <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
                 ) : isActive ? (
                   <Mic className="w-10 h-10 text-white" />
@@ -245,9 +430,26 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
                 )}
               </button>
               <span className="text-slate-400 text-xs font-semibold uppercase tracking-widest">
-                {isActive ? 'Tap to end' : isLoading ? 'Please wait...' : 'Tap to start'}
+                {isActive ? 'Tap to end' : sessionStatus === 'connecting' ? 'Please wait...' : 'Tap to start'}
               </span>
             </div>
+
+            {/* Mute/Unmute button */}
+            <button
+              onClick={toggleMute}
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all border ${
+                isMuted
+                  ? 'bg-red-500/20 border-red-500/30 text-red-400'
+                  : 'bg-white/5 border-white/10 text-slate-400 group-hover:text-white'
+              }`}>
+                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </div>
+              <span className={`text-[10px] uppercase tracking-widest font-bold ${
+                isMuted ? 'text-red-400' : 'text-slate-500 group-hover:text-slate-300'
+              }`}>{isMuted ? 'Muted' : 'Sound'}</span>
+            </button>
 
             {/* Transcript button */}
             <button
@@ -306,11 +508,11 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
                   </div>
                 </div>
               ))}
-              {isSpeaking && (
+              {sessionStatus === 'thinking' && (
                 <div className="flex gap-1 pl-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce [animation-delay:0.4s]" />
                 </div>
               )}
             </div>
@@ -321,16 +523,8 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
       {/* Footer */}
       <div className="absolute bottom-6 flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">
         <Info className="w-3 h-3" />
-        AI is evaluating your tone, pacing, and content
+        Powered by Web Speech API + Groq AI — Free & Private
       </div>
     </motion.div>
-  )
-}
-
-export default function VoiceInterview(props: VoiceInterviewProps) {
-  return (
-    <ConversationProvider>
-      <VoiceInterviewContent {...props} />
-    </ConversationProvider>
   )
 }
