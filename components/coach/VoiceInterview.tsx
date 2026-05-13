@@ -61,16 +61,8 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
     setSessionStatus('connecting')
 
     try {
-      // Let the ElevenLabs SDK handle the microphone permission and connection.
       await conversation.startSession({
         agentId,
-        // IMPORTANT: If you want to use dynamic variables and prompt overrides,
-        // you MUST enable "Client prompt overrides" and define these variables
-        // in your ElevenLabs Dashboard for this specific Agent ID.
-        // Otherwise, the agent will instantly drop the connection!
-        
-        // Uncomment these only AFTER configuring the dashboard:
-        /*
         dynamicVariables: {
           company_name: company,
           role_title: role,
@@ -84,7 +76,6 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
             firstMessage: `Hello! I am your AI Coach. We are doing a ${sessionType} interview for the ${role} position at ${company}. Are you ready to begin?`
           }
         }
-        */
       })
       // Connection success is handled by onConnect callback
     } catch (err: any) {
