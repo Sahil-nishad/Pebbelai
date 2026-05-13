@@ -69,7 +69,15 @@ function VoiceInterviewContent({ company, role, sessionType, onClose }: VoiceInt
       // Do NOT call getUserMedia here — let the ElevenLabs SDK handle mic access
       // internally. Calling it ourselves can lock the mic and cause track publishing failures.
       // Use websocket connectionType to avoid WebRTC track publishing issues
-      await conversation.startSession({ agentId, connectionType: 'websocket' })
+      await conversation.startSession({
+        agentId,
+        connectionType: 'websocket',
+        dynamicVariables: {
+          company_name: company,
+          role_title: role || 'General',
+          interview_type: sessionType,
+        },
+      })
       // Connection success is handled by onConnect callback
     } catch (err: any) {
       console.error('[VoiceInterview] Error starting session:', err)
