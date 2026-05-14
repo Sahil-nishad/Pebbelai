@@ -115,9 +115,10 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
             if (shouldRestartRef.current) {
               setSessionStatus('listening')
               resolve()
-              // On mobile: longer delay so mic doesn't pick up speaker audio
-              const delay = isMobileBrowser() ? 800 : 0
-              setTimeout(() => startListening(), delay)
+              // Mobile: don't auto-start mic — user controls via push-to-talk
+              if (!isMobileBrowser()) {
+                startListening()
+              }
             } else { resolve() }
           }
           audio.onerror = () => {
@@ -153,16 +154,19 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       if (shouldRestartRef.current) {
         setSessionStatus('listening')
         resolve()
-        const delay = isMobileBrowser() ? 800 : 0
-        setTimeout(() => startListening(), delay)
+        // Mobile: don't auto-start mic — user controls via push-to-talk
+        if (!isMobileBrowser()) {
+          startListening()
+        }
       } else { resolve() }
     }
     utterance.onerror = () => {
       if (shouldRestartRef.current) {
         setSessionStatus('listening')
         resolve()
-        const delay = isMobileBrowser() ? 800 : 0
-        setTimeout(() => startListening(), delay)
+        if (!isMobileBrowser()) {
+          startListening()
+        }
       } else { resolve() }
     }
     synthRef.current.speak(utterance)
@@ -188,7 +192,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
     } catch {
       toast.error('Failed to get AI response')
       setSessionStatus('listening')
-      startListening()
+      // Desktop only — mobile uses push-to-talk
+      if (!isMobileBrowser()) startListening()
     }
   }, [speak])
 
@@ -212,17 +217,27 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
   // Push-to-talk: start recording (mobile)
   const handlePushToTalkStart = useCallback(() => {
-    if (!shouldRestartRef.current || sessionStatus === 'thinking' || sessionStatus === 'speaking') return
+    // Use ref checks — not state — to avoid stale closures
+    if (!recognitionRef.current || !sessionIdRef.current) return
+    if (isListeningRef.current) return
     setIsPushToTalkHeld(true)
-    startListening()
-  }, [sessionStatus, startListening])
+    setCurrentSpeech('')
+    try {
+      isListeningRef.current = true
+      setSessionStatus('listening')
+      recognitionRef.current.start()
+    } catch {
+      isListeningRef.current = false
+    }
+  }, [])
 
   // Push-to-talk: stop recording and send (mobile)
   const handlePushToTalkEnd = useCallback(() => {
     setIsPushToTalkHeld(false)
     if (isListeningRef.current) {
-      try { recognitionRef.current?.stop() } catch {}
       isListeningRef.current = false
+      // Stop recognition — onend will fire and send the transcript
+      try { recognitionRef.current?.stop() } catch {}
     }
   }, [])
 
@@ -283,22 +298,9 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
         setCurrentSpeech(accumulatedTranscript + interim)
 
-        // On mobile: send immediately on final result (no silence timer — mobile recognition is unreliable)
-        if (mobile && final && accumulatedTranscript.trim()) {
-          if (silenceTimer) clearTimeout(silenceTimer)
-          silenceTimer = setTimeout(() => {
-            if (accumulatedTranscript.trim()) {
-              const message = accumulatedTranscript.trim()
-              accumulatedTranscript = ''
-              hasSpoken = false
-              setCurrentSpeech('')
-              recognition.stop()
-              isListeningRef.current = false
-              sendToCoach(message)
-            }
-          }, 1500) // Shorter timeout on mobile
-          return
-        }
+        // On mobile push-to-talk: don't use silence timer — wait for user to release button
+        // onend fires when recognition.stop() is called in handlePushToTalkEnd
+        if (mobile) return
 
         // Desktop: reset silence timer — user is still talking
         if (silenceTimer) clearTimeout(silenceTimer)
@@ -320,23 +322,29 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
       recognition.onend = () => {
         isListeningRef.current = false
-        // If we have accumulated text that wasn't sent yet (recognition ended naturally)
+        if (silenceTimer) clearTimeout(silenceTimer)
+
+        // Send accumulated transcript if any
         if (accumulatedTranscript.trim()) {
           const message = accumulatedTranscript.trim()
           accumulatedTranscript = ''
           hasSpoken = false
           setCurrentSpeech('')
-          if (silenceTimer) clearTimeout(silenceTimer)
           sendToCoach(message)
-        } else if (shouldRestartRef.current && sessionStatus !== 'thinking' && sessionStatus !== 'speaking') {
-          // On mobile: don't auto-restart — wait for push-to-talk
-          // On desktop: restart after a short delay
-          if (!mobile) {
-            setTimeout(() => startListening(), 300)
-          } else {
-            // Mobile: go back to idle listening state, user taps to speak
+          return
+        }
+
+        // No speech captured
+        if (mobile) {
+          // Mobile push-to-talk: just reset to listening state, wait for next hold
+          if (shouldRestartRef.current) {
             setSessionStatus('listening')
             setCurrentSpeech('')
+          }
+        } else {
+          // Desktop: auto-restart
+          if (shouldRestartRef.current && sessionStatus !== 'thinking' && sessionStatus !== 'speaking') {
+            setTimeout(() => startListening(), 300)
           }
         }
       }
@@ -347,14 +355,14 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
         if (event.error === 'not-allowed') {
           toast.error('Microphone access denied. Allow microphone in browser settings.', { duration: 5000 })
           setSessionStatus('error')
-        } else if (event.error === 'no-speech') {
-          if (!mobile && shouldRestartRef.current) setTimeout(() => startListening(), 300)
-          else if (mobile) { setSessionStatus('listening'); setCurrentSpeech('') }
         } else if (event.error === 'aborted') {
-          // Aborted — don't restart (likely intentional)
+          // Intentional stop — do nothing
+        } else if (mobile) {
+          // Mobile: reset to listening state on any error
+          if (shouldRestartRef.current) { setSessionStatus('listening'); setCurrentSpeech('') }
         } else {
-          if (!mobile && shouldRestartRef.current) setTimeout(() => startListening(), 500)
-          else if (mobile) { setSessionStatus('listening'); setCurrentSpeech('') }
+          // Desktop: try to restart
+          if (shouldRestartRef.current) setTimeout(() => startListening(), 500)
         }
       }
 
@@ -366,6 +374,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       speechSynthesis.getVoices()
       await new Promise(resolve => setTimeout(resolve, 300))
       await speak(introMessage)
+      // On mobile: after intro, show "Hold to speak" — don't auto-start mic
+      if (mobile) setSessionStatus('listening')
     } catch (err: any) {
       toast.error(err?.message || 'Failed to start voice interview')
       setSessionStatus('error')
@@ -445,7 +455,9 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const headingText = {
     idle: 'Tap the mic to begin your interview.',
     connecting: 'Setting up your AI interviewer...',
-    listening: currentSpeech || "I'm listening. Go ahead.",
+    listening: isMobile
+      ? (isPushToTalkHeld ? (currentSpeech || 'Listening...') : 'Hold the mic button and speak your answer')
+      : (currentSpeech || "I'm listening. Go ahead."),
     thinking: 'Processing your answer...',
     speaking: 'Your AI coach is speaking...',
     error: 'Something went wrong. Try again.',
