@@ -35,6 +35,8 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
   const [isMobile, setIsMobile] = useState(false)
   const [isPushToTalkHeld, setIsPushToTalkHeld] = useState(false)
 
+  // Keep a ref for isPushToTalkHeld so recognition onend can check it
+  const isPushToTalkHeldRef = useRef(false)
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const isListeningRef = useRef(false)
@@ -217,9 +219,9 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
 
   // Push-to-talk: start recording (mobile)
   const handlePushToTalkStart = useCallback(() => {
-    // Use ref checks — not state — to avoid stale closures
     if (!recognitionRef.current || !sessionIdRef.current) return
     if (isListeningRef.current) return
+    isPushToTalkHeldRef.current = true
     setIsPushToTalkHeld(true)
     setCurrentSpeech('')
     try {
@@ -228,15 +230,17 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       recognitionRef.current.start()
     } catch {
       isListeningRef.current = false
+      isPushToTalkHeldRef.current = false
+      setIsPushToTalkHeld(false)
     }
   }, [])
 
   // Push-to-talk: stop recording and send (mobile)
   const handlePushToTalkEnd = useCallback(() => {
+    isPushToTalkHeldRef.current = false
     setIsPushToTalkHeld(false)
     if (isListeningRef.current) {
       isListeningRef.current = false
-      // Stop recognition — onend will fire and send the transcript
       try { recognitionRef.current?.stop() } catch {}
     }
   }, [])
@@ -267,9 +271,11 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       sessionIdRef.current = data.session.id  // Update ref immediately — don't wait for re-render
 
       const recognition = new SpeechRecognition()
-      // Mobile push-to-talk needs continuous=true so it keeps listening while held
-      // Desktop uses continuous=false (restarts after each utterance)
-      recognition.continuous = true
+      const mobile = isMobileBrowser()
+      // Mobile: continuous=false works more reliably on Android Chrome
+      // We restart it manually while the button is held
+      // Desktop: continuous=true for seamless auto-detect
+      recognition.continuous = !mobile
       recognition.interimResults = true
       recognition.lang = 'en-US'
       recognition.maxAlternatives = 1
@@ -277,7 +283,6 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       let accumulatedTranscript = ''
       let silenceTimer: ReturnType<typeof setTimeout> | null = null
       let hasSpoken = false
-      const mobile = isMobileBrowser()
 
       recognition.onresult = (event: any) => {
         let interim = ''
@@ -326,26 +331,37 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
         isListeningRef.current = false
         if (silenceTimer) clearTimeout(silenceTimer)
 
-        // Send accumulated transcript if any
-        if (accumulatedTranscript.trim()) {
-          const message = accumulatedTranscript.trim()
-          accumulatedTranscript = ''
-          hasSpoken = false
-          setCurrentSpeech('')
-          sendToCoach(message)
-          return
-        }
-
-        // No speech captured
         if (mobile) {
-          // Mobile push-to-talk: just reset to listening state, wait for next hold
-          if (shouldRestartRef.current) {
+          // If button still held — restart recognition immediately (continuous loop)
+          if (isPushToTalkHeldRef.current && shouldRestartRef.current) {
+            try {
+              isListeningRef.current = true
+              recognition.start()
+            } catch {
+              isListeningRef.current = false
+            }
+            return
+          }
+          // Button released — send accumulated transcript
+          if (accumulatedTranscript.trim()) {
+            const message = accumulatedTranscript.trim()
+            accumulatedTranscript = ''
+            hasSpoken = false
+            setCurrentSpeech('')
+            sendToCoach(message)
+          } else if (shouldRestartRef.current) {
             setSessionStatus('listening')
             setCurrentSpeech('')
           }
         } else {
-          // Desktop: auto-restart
-          if (shouldRestartRef.current && sessionStatus !== 'thinking' && sessionStatus !== 'speaking') {
+          // Desktop: send if we have text, otherwise restart
+          if (accumulatedTranscript.trim()) {
+            const message = accumulatedTranscript.trim()
+            accumulatedTranscript = ''
+            hasSpoken = false
+            setCurrentSpeech('')
+            sendToCoach(message)
+          } else if (shouldRestartRef.current && sessionStatus !== 'thinking' && sessionStatus !== 'speaking') {
             setTimeout(() => startListening(), 300)
           }
         }
