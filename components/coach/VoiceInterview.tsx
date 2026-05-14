@@ -267,7 +267,9 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
       sessionIdRef.current = data.session.id  // Update ref immediately — don't wait for re-render
 
       const recognition = new SpeechRecognition()
-      recognition.continuous = false  // Use non-continuous — restarts after each utterance
+      // Mobile push-to-talk needs continuous=true so it keeps listening while held
+      // Desktop uses continuous=false (restarts after each utterance)
+      recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = 'en-US'
       recognition.maxAlternatives = 1
@@ -622,26 +624,27 @@ export default function VoiceInterview({ company, role, sessionType, onClose }: 
           {/* Main Mic Button — desktop: tap to toggle, mobile: hold to speak */}
           <div className="flex flex-col items-center gap-3">
             {isMobile && isActive ? (
-              // Mobile push-to-talk button
+              // Mobile push-to-talk button — use pointer events (more reliable than touch)
               <button
-                onTouchStart={e => { e.preventDefault(); handlePushToTalkStart() }}
-                onTouchEnd={e => { e.preventDefault(); handlePushToTalkEnd() }}
-                onMouseDown={handlePushToTalkStart}
-                onMouseUp={handlePushToTalkEnd}
-                onMouseLeave={handlePushToTalkEnd}
+                onPointerDown={e => { e.preventDefault(); handlePushToTalkStart() }}
+                onPointerUp={e => { e.preventDefault(); handlePushToTalkEnd() }}
+                onPointerCancel={e => { e.preventDefault(); handlePushToTalkEnd() }}
+                onPointerLeave={e => { e.preventDefault(); handlePushToTalkEnd() }}
+                onContextMenu={e => e.preventDefault()}
                 disabled={sessionStatus === 'thinking' || sessionStatus === 'speaking'}
-                className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-150 shadow-lg select-none ${
+                style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+                className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-150 shadow-lg ${
                   isPushToTalkHeld
                     ? 'bg-red-500 shadow-red-500/30 scale-110'
                     : sessionStatus === 'thinking' || sessionStatus === 'speaking'
                     ? 'bg-slate-300 shadow-slate-200/50 opacity-60'
-                    : 'bg-[#0A6A47] shadow-[#0A6A47]/25 active:scale-95'
+                    : 'bg-[#0A6A47] shadow-[#0A6A47]/25'
                 }`}
               >
                 {sessionStatus === 'thinking' ? (
-                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                  <Loader2 className="w-9 h-9 text-white animate-spin" />
                 ) : (
-                  <Mic className={`w-8 h-8 text-white ${isPushToTalkHeld ? 'animate-pulse' : ''}`} />
+                  <Mic className={`w-9 h-9 text-white ${isPushToTalkHeld ? 'animate-pulse' : ''}`} />
                 )}
               </button>
             ) : (
